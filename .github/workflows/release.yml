@@ -65,6 +65,7 @@ jobs:
           echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
           echo "Current latest tag: ${latest_tag}"
 
+
       - name: Calculate next version
         id: semver
         run: |
