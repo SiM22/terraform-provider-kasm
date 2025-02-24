@@ -6,8 +6,8 @@ package tests
 import (
 	"fmt"
 	"math/rand"
-	"regexp"
 	"os"
+	"regexp"
 	"testing"
 	"time"
 
