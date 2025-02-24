@@ -187,9 +187,10 @@ func resourceUserToState(ctx context.Context, user *client.User, state *UserReso
 		state.Phone = types.StringValue(user.Phone)
 	}
 
+	// Password is handled separately and only updated when changed
 	// Keep existing password if set
 	if !state.Password.IsNull() {
-		state.Password = state.Password
+		// Password is already set, no need to reassign
 	}
 
 	// Always ensure groups is a non-null list

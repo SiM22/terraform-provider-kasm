@@ -39,7 +39,9 @@ func setupTestServer(t *testing.T, path string, expectedMethod string, expectedB
 			if err != nil {
 				t.Fatalf("Failed to marshal response: %v", err)
 			}
-			w.Write(responseBytes)
+			if _, err := w.Write(responseBytes); err != nil {
+				t.Fatal(err)
+			}
 		}
 	}))
 }

@@ -30,8 +30,9 @@ func TestAccGroupImage_errors(t *testing.T) {
 		}
 	})
 
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 	username := fmt.Sprintf("testuser_%s", uniqueIdentifier)
 

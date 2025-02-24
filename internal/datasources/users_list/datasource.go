@@ -151,9 +151,7 @@ func (d *usersDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 
 		// Convert authorized images to types.List
 		authorizedImages := make([]string, 0)
-		for _, image := range user.AuthorizedImages {
-			authorizedImages = append(authorizedImages, image)
-		}
+		authorizedImages = append(authorizedImages, user.AuthorizedImages...)
 		imagesList, diags := types.ListValueFrom(ctx, types.StringType, authorizedImages)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {

@@ -23,8 +23,8 @@ func (c *Client) GetCastingConfigs() ([]CastingConfig, error) {
 		}
 		defer resp.Body.Close()
 
-		if err := c.handleAPIError(resp, "get cast configs"); err != nil {
-			return err
+		if resp.StatusCode >= 400 {
+			return c.handleAPIError(resp, "get cast configs")
 		}
 
 		var result struct {
@@ -61,8 +61,8 @@ func (c *Client) GetCastingConfig(castConfigID string) (*CastingConfig, error) {
 		}
 		defer resp.Body.Close()
 
-		if err := c.handleAPIError(resp, "get cast config"); err != nil {
-			return err
+		if resp.StatusCode >= 400 {
+			return c.handleAPIError(resp, "get cast config")
 		}
 
 		var result struct {
@@ -103,8 +103,8 @@ func (c *Client) CreateCastingConfig(request *CreateCastingConfigRequest) (*Cast
 		}
 		defer resp.Body.Close()
 
-		if err := c.handleAPIError(resp, "create cast config"); err != nil {
-			return err
+		if resp.StatusCode >= 400 {
+			return c.handleAPIError(resp, "create cast config")
 		}
 
 		var result struct {
@@ -289,18 +289,11 @@ func (c *Client) validateCastingConfig(config *CastingConfig) error {
 
 // handleAPIError processes API responses and returns appropriate errors
 func (c *Client) handleAPIError(resp *http.Response, operation string) error {
-	if resp.StatusCode == http.StatusUnauthorized {
-		return fmt.Errorf("unauthorized: invalid API credentials")
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
 	}
-	if resp.StatusCode == http.StatusForbidden {
-		return fmt.Errorf("forbidden: insufficient permissions for %s", operation)
-	}
-	if resp.StatusCode == http.StatusNotFound {
-		return fmt.Errorf("not found: the requested resource does not exist")
-	}
-
-	body, _ := io.ReadAll(resp.Body)
-	return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
+	return nil
 }
 
 // retryOperation retries an operation with exponential backoff
