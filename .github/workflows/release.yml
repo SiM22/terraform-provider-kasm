@@ -65,7 +65,6 @@ jobs:
           echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
           echo "Current latest tag: ${latest_tag}"
 
-
       - name: Calculate next version
         id: semver
         run: |
@@ -129,9 +128,12 @@ jobs:
 
       - name: Create and push tag
         run: |
-          git tag -a ${{ steps.semver.outputs.new_version }} -m "Release ${{ steps.semver.outputs.new_version }}"
-          git push origin ${{ steps.semver.outputs.new_version }}
-          git push origin HEAD:main
+          if git rev-parse -q --verify "refs/tags/${{ steps.semver.outputs.new_version }}" > /dev/null; then
+            echo "Tag ${{ steps.semver.outputs.new_version }} already exists. Skipping tag creation."
+          else
+            git tag -a ${{ steps.semver.outputs.new_version }} -m "Release ${{ steps.semver.outputs.new_version }}"
+            git push origin ${{ steps.semver.outputs.new_version }}
+          fi
 
       - name: Import GPG key
         id: import_gpg
