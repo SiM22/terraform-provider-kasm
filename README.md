@@ -1,7 +1,7 @@
 # Terraform Provider for Kasm Workspaces
 
-[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/kasm/terraform-provider-kasm)](https://github.com/kasm/terraform-provider-kasm/releases)
-[![Build Status](https://github.com/SiM22/terraform-provider-kasm/actions/workflows/test.yml/badge.svg)](https://github.com/SiM22/terraform-provider-kasm/actions/workflows/test.yml)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/kasm/terraform-provider-kasm)](https://github.com/SiM22/terraform-provider-kasm/releases)
+[![Build Status](https://github.com/SiM22/terraform-provider-kasm/actions/workflows/test.yml/badge.svg)](https://github.com/SiM22/terraform-provider-kasm/actions/workflows/test.yml) 
 
 > ⚠️ **Work in Progress**: This provider is currently under active development and may not be fully stable. Some features might not work as expected, and breaking changes could occur. Use with caution in production environments.
 
