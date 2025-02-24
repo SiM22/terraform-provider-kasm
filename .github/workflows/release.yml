@@ -21,10 +21,26 @@ permissions:
   contents: write
 
 jobs:
-  # Run all tests first
   test:
-    uses: ./.github/workflows/test.yml
-    secrets: inherit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.0'
+          cache: true
+
+      - name: Verify Dependencies
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Run Unit Tests
+        run: |
+          go test -v -tags=unit ./...
 
   release:
     needs: test
@@ -45,7 +61,7 @@ jobs:
         id: get_latest_tag
         run: |
           git fetch --tags
-          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
           echo "Current latest tag: ${latest_tag}"
 
@@ -53,10 +69,11 @@ jobs:
         id: semver
         run: |
           latest_version=${latest_tag#v}
+          if [ -z "$latest_version" ]; then
+            latest_version="0.0.0"
+          fi
           IFS='.' read -r major minor patch <<< "$latest_version"
-
           increment_type="${{ github.event.inputs.version_increment }}"
-
           case $increment_type in
             major)
               major=$((major + 1))
@@ -71,7 +88,6 @@ jobs:
               patch=$((patch + 1))
               ;;
           esac
-
           new_version="v${major}.${minor}.${patch}"
           echo "new_version=${new_version}" >> $GITHUB_OUTPUT
           echo "New version will be: ${new_version}"
@@ -81,7 +97,7 @@ jobs:
         uses: mikepenz/release-changelog-builder-action@v4
         with:
           configuration: .github/changelog-config.json
-          fromTag: ${{ steps.get_latest_tag.outputs.latest_tag }}
+          fromTag: ${{ steps.get_latest_tag.outputs.latest_tag || 'initial-commit' }}
           toTag: ${{ github.ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -104,7 +120,6 @@ jobs:
             tail -n +2 CHANGELOG.md >> CHANGELOG.new.md
           fi
           mv CHANGELOG.new.md CHANGELOG.md
-
           # Commit the updated CHANGELOG.md
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
