@@ -1,0 +1,256 @@
+name: Terraform Provider CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  KASM_BASE_URL: "https://localhost"
+  ADMIN_USERNAME: "admin@kasm.local"
+  ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+  USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
+  GO_VERSION: '1.23'
+
+jobs:
+  # Stage 1: Initial checks that don't need Kasm
+  initial_checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Verify Dependencies
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+
+      - name: Run Unit Tests
+        run: make test
+
+  # Stage 2: Code Quality
+  code_quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Check Formatting
+        run: make fmt
+
+      - name: Run Linters
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+
+  # Stage 3: Security Scanning
+  security:
+    needs: [initial_checks]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+      - name: Run dependency vulnerability scan
+        uses: golang/govulncheck-action@v1
+        with:
+          go-version-input: ${{ env.GO_VERSION }}
+          check-latest: true
+
+  # Stage 4: Setup Kasm and Run Acceptance Tests
+  acceptance_tests:
+    needs: [code_quality, security]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Install System Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl jq
+
+      - name: Download and Extract Kasm Workspaces
+        run: |
+          KASM_RELEASE="kasm_release_1.16.0.a1d5b7.tar.gz"
+          KASM_RELEASE_PATH="/tmp/$KASM_RELEASE"
+
+          echo "Downloading Kasm release..."
+          curl -o "$KASM_RELEASE_PATH" https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.0.a1d5b7.tar.gz
+
+          mkdir -p /tmp/kasm_release
+          tar -xf "$KASM_RELEASE_PATH" -C /tmp/kasm_release
+
+          sudo bash /tmp/kasm_release/kasm_release/install.sh \
+            --admin-password "$ADMIN_PASSWORD" \
+            --user-password "$USER_PASSWORD" \
+            --accept-eula \
+            --swap-size 4096
+
+          echo "Waiting for Kasm to be fully up..."
+          for i in {1..30}; do
+            if curl -k -s "$KASM_BASE_URL/api/__healthcheck" | grep -q "ok"; then
+              echo "Kasm is up and running"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Timeout waiting for Kasm to start"
+              exit 1
+            fi
+            echo "Waiting... attempt $i/30"
+            sleep 10
+          done
+
+      - name: Set Up API Key for Acceptance Tests
+        id: api_key
+        run: |
+          # Get auth token and store it
+          AUTH_RESPONSE=$(curl -k -s -X POST "$KASM_BASE_URL/api/authenticate" \
+            -H "Content-Type: application/json" \
+            -d "{\"username\":\"$ADMIN_USERNAME\",\"password\":\"$ADMIN_PASSWORD\"}")
+
+          echo "Authentication Response: $AUTH_RESPONSE"
+
+          # Extract and store token
+          AUTH_TOKEN=$(echo $AUTH_RESPONSE | jq -r .token)
+          echo "AUTH_TOKEN=$AUTH_TOKEN" >> $GITHUB_ENV
+
+          if [ -z "$AUTH_TOKEN" ] || [ "$AUTH_TOKEN" = "null" ]; then
+            echo "Error: Failed to get authentication token"
+            exit 1
+          fi
+
+          echo "Authentication successful"
+
+          # Create API key
+          PAYLOAD=$(cat <<EOF
+          {
+            "api_config": {
+              "enabled": true,
+              "name": "terraform_provider_test_key",
+              "read_only": false,
+              "expires": null
+            },
+            "token": "$AUTH_TOKEN",
+            "username": "$ADMIN_USERNAME"
+          }
+          EOF
+          )
+
+          API_RESPONSE=$(curl -k -s -X POST "$KASM_BASE_URL/api/public/create_api_configs" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD")
+
+          echo "API Key Creation Response: $API_RESPONSE"
+
+          KASM_API_KEY=$(echo $API_RESPONSE | jq -r '.api_config.api_key')
+          KASM_API_SECRET=$(echo $API_RESPONSE | jq -r '.api_config.api_key_secret')
+          KASM_API_ID=$(echo $API_RESPONSE | jq -r '.api_config.api_id')
+
+          if [ -z "$KASM_API_KEY" ] || [ "$KASM_API_KEY" = "null" ]; then
+            echo "Error: Failed to get API key"
+            exit 1
+          fi
+
+          echo "KASM_API_KEY=$KASM_API_KEY" >> $GITHUB_ENV
+          echo "KASM_API_SECRET=$KASM_API_SECRET" >> $GITHUB_ENV
+          echo "KASM_API_ID=$KASM_API_ID" >> $GITHUB_ENV
+
+      - name: Update API Key Permissions
+        run: |
+          # Use stored AUTH_TOKEN from environment
+          PERMISSION_PAYLOAD=$(cat <<EOF
+          {
+            "token": "$AUTH_TOKEN",
+            "username": "$ADMIN_USERNAME",
+            "target_api_config": {
+              "api_id": "$KASM_API_ID"
+            },
+            "target_permissions": [100, 200, 352]
+          }
+          EOF
+          )
+
+          echo "Sending permission payload: $PERMISSION_PAYLOAD"
+
+          PERMISSION_RESPONSE=$(curl -k -s -X POST "$KASM_BASE_URL/api/public/add_permissions_group" \
+            -H "Content-Type: application/json" \
+            -H "Cookie: session_token=$AUTH_TOKEN; username=$ADMIN_USERNAME" \
+            -d "$PERMISSION_PAYLOAD")
+
+          echo "Permission Update Response: $PERMISSION_RESPONSE"
+
+          if echo "$PERMISSION_RESPONSE" | jq -e '.permissions' > /dev/null; then
+            echo "Successfully updated API key permissions"
+          else
+            echo "Failed to update API key permissions"
+            echo "Response: $PERMISSION_RESPONSE"
+            exit 1
+          fi
+
+      # Run tests in specific order
+      - name: Run Registry Tests
+        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/registry/tests/...
+
+      - name: Run Cast Tests
+        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/cast/tests/...
+
+      - name: Run Session Tests
+        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/kasm/session/tests/...
+
+      - name: Run Group Tests
+        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/group/tests/...
+
+      - name: Run User Tests
+        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/user/tests/...
+
+      - name: Run Remaining Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            $(go list ./... | grep -v 'registry/tests\|cast/tests\|session/tests\|group/tests\|user/tests')
+
+      - name: Upload Test Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: acceptance-test-logs
+          path: |
+            terraform.log
+            testdata/ai_debug_output.md
+
+      - name: Cleanup Kasm
+        if: always()
+        run: |
+          echo "Stopping Kasm containers..."
+          # First try graceful shutdown
+          if sudo test -f /opt/kasm/current/bin/stop; then
+            sudo bash /opt/kasm/current/bin/stop || true
+          fi
+
+          # Force remove any remaining containers
+          KASM_CONTAINERS=$(sudo docker ps -q --filter "name=kasm_")
+          if [ ! -z "$KASM_CONTAINERS" ]; then
+            echo "Force removing remaining Kasm containers..."
+            sudo docker rm -f $KASM_CONTAINERS || true
+          fi

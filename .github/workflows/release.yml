@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: 'Version increment type (major, minor, patch)'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - major
+          - minor
+          - patch
+      release_notes:
+        description: 'Additional release notes'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  # Run all tests first
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets: inherit
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Get latest tag
+        id: get_latest_tag
+        run: |
+          git fetch --tags
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "latest_tag=${latest_tag}" >> $GITHUB_OUTPUT
+          echo "Current latest tag: ${latest_tag}"
+
+      - name: Calculate next version
+        id: semver
+        run: |
+          latest_version=${latest_tag#v}
+          IFS='.' read -r major minor patch <<< "$latest_version"
+
+          increment_type="${{ github.event.inputs.version_increment }}"
+
+          case $increment_type in
+            major)
+              major=$((major + 1))
+              minor=0
+              patch=0
+              ;;
+            minor)
+              minor=$((minor + 1))
+              patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="v${major}.${minor}.${patch}"
+          echo "new_version=${new_version}" >> $GITHUB_OUTPUT
+          echo "New version will be: ${new_version}"
+
+      - name: Generate Changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: .github/changelog-config.json
+          fromTag: ${{ steps.get_latest_tag.outputs.latest_tag }}
+          toTag: ${{ github.ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Prepend new changes to CHANGELOG.md
+          echo "# Changelog" > CHANGELOG.new.md
+          echo "" >> CHANGELOG.new.md
+          echo "## ${{ steps.semver.outputs.new_version }} ($(date +%Y-%m-%d))" >> CHANGELOG.new.md
+          echo "" >> CHANGELOG.new.md
+          echo "${{ steps.changelog.outputs.changelog }}" >> CHANGELOG.new.md
+          if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+            echo "" >> CHANGELOG.new.md
+            echo "### Additional Notes" >> CHANGELOG.new.md
+            echo "${{ github.event.inputs.release_notes }}" >> CHANGELOG.new.md
+          fi
+          echo "" >> CHANGELOG.new.md
+          if [ -f CHANGELOG.md ]; then
+            tail -n +2 CHANGELOG.md >> CHANGELOG.new.md
+          fi
+          mv CHANGELOG.new.md CHANGELOG.md
+
+          # Commit the updated CHANGELOG.md
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add CHANGELOG.md
+          git commit -m "Update CHANGELOG.md for ${{ steps.semver.outputs.new_version }}" || echo "No changes to commit"
+
+      - name: Create and push tag
+        run: |
+          git tag -a ${{ steps.semver.outputs.new_version }} -m "Release ${{ steps.semver.outputs.new_version }}"
+          git push origin ${{ steps.semver.outputs.new_version }}
+          git push origin HEAD:main
+
+      - name: Import GPG key
+        id: import_gpg
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GPG_FINGERPRINT: ${{ steps.import_gpg.outputs.fingerprint }}

@@ -1,0 +1,306 @@
+package tests
+
+import (
+	"fmt"
+	"os"
+	"testing"
+	"time"
+	"math/rand"
+	"log"
+	"encoding/json"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"terraform-provider-kasm/testutils"
+	"terraform-provider-kasm/internal/client"
+)
+
+func generateUniqueUsername() string {
+	// Use timestamp and random number to ensure uniqueness
+	timestamp := time.Now().Unix()
+	randomNum := rand.Intn(10000)
+	return fmt.Sprintf("testuser_%d_%d", timestamp, randomNum)
+}
+
+func TestAccKasmExec_Basic(t *testing.T) {
+	username := generateUniqueUsername()
+
+	// Get the client and ensure we have a workspace image
+	c := testutils.GetTestClient(t)
+	imageID := ensureWorkspaceImage(t, c)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testutils.TestAccPreCheck(t) },
+		ProtoV6ProviderFactories: testutils.TestAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccKasmExecConfig_basic(username, imageID),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttrSet("kasm_session.test", "id"),
+					resource.TestCheckResourceAttrSet("kasm_session.test", "operational_status"),
+					testAccCheckAddUserToGlobalAdmin(t, c),
+					testAccCheckExecCommand(t, c, "echo 'Hello, World!'"),
+				),
+			},
+		},
+	})
+}
+
+func testAccKasmExecConfig_basic(username, imageID string) string {
+	return fmt.Sprintf(`
+provider "kasm" {
+    base_url = "%s"
+    api_key = "%s"
+    api_secret = "%s"
+    insecure = true
+}
+
+resource "kasm_user" "test" {
+    username = "%s"
+    password = "TestPassword123!"
+    first_name = "Test"
+    last_name = "User"
+    organization = "Test Org"
+    locked = false
+    disabled = false
+}
+
+resource "kasm_session" "test" {
+    image_id = "%s"
+    user_id = kasm_user.test.id
+    allow_exec = true
+}
+`, os.Getenv("KASM_BASE_URL"), os.Getenv("KASM_API_KEY"), os.Getenv("KASM_API_SECRET"), username, imageID)
+}
+
+func testAccCheckAddUserToGlobalAdmin(t *testing.T, c *client.Client) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["kasm_user.test"]
+		if !ok {
+			return fmt.Errorf("kasm_user.test not found in state")
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("no user ID is set")
+		}
+
+		// Get all groups to find Global Admin group ID
+		groups, err := c.GetGroups()
+		if err != nil {
+			return fmt.Errorf("error getting groups: %v", err)
+		}
+
+		var globalAdminGroupID string
+		for _, group := range groups {
+			if group.Name == "Global Admin" {
+				globalAdminGroupID = group.GroupID
+				break
+			}
+		}
+
+		if globalAdminGroupID == "" {
+			return fmt.Errorf("Global Admin group not found")
+		}
+
+		// Add user to Global Admin group
+		err = c.AddUserToGroup(rs.Primary.ID, globalAdminGroupID)
+		if err != nil {
+			return fmt.Errorf("error adding user to Global Admin group: %v", err)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckExecCommand(t *testing.T, c *client.Client, command string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["kasm_session.test"]
+		if !ok {
+			return fmt.Errorf("kasm_session.test not found in state")
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("no session ID is set")
+		}
+
+		userRS, ok := s.RootModule().Resources["kasm_user.test"]
+		if !ok {
+			return fmt.Errorf("kasm_user.test not found in state")
+		}
+
+		if userRS.Primary.ID == "" {
+			return fmt.Errorf("no user ID is set")
+		}
+
+		// Create exec config
+		execConfig := client.ExecConfig{
+			Cmd: command,
+		}
+
+		// Execute command
+		resp, err := c.ExecCommandKasm(rs.Primary.ID, userRS.Primary.ID, execConfig)
+		if err != nil {
+			return fmt.Errorf("error executing command: %v", err)
+		}
+
+		if resp == nil {
+			return fmt.Errorf("received nil response from exec command")
+		}
+
+		return nil
+	}
+}
+
+// Helper Functions
+
+// ensureWorkspaceImage ensures that a Chrome browser workspace image exists
+// It first checks for an existing image, and if not found, creates it
+// Returns the image ID for use in tests
+func ensureWorkspaceImage(t *testing.T, c *client.Client) string {
+	if os.Getenv("KASM_DEBUG") != "" {
+		log.Printf("[DEBUG] Starting ensureWorkspaceImage")
+	}
+
+	// Try to find an existing image first
+	images, err := c.GetImages()
+	if err != nil {
+		if os.Getenv("KASM_DEBUG") != "" {
+			log.Printf("[DEBUG] Error getting images: %v", err)
+			log.Printf("[DEBUG] Will attempt to create new image")
+		}
+		// Don't fail here - we'll try to create one
+	} else {
+		if os.Getenv("KASM_DEBUG") != "" {
+			log.Printf("[DEBUG] Found %d existing images", len(images))
+			for i, img := range images {
+				log.Printf("[DEBUG] Image %d: ID=%s Name=%s Available=%v", i, img.ImageID, img.Name, img.Available)
+			}
+		}
+		// Look for any usable image
+		for _, img := range images {
+			if img.ImageID != "" && img.Available {
+				if os.Getenv("KASM_DEBUG") != "" {
+					log.Printf("[DEBUG] Found existing usable image: %s (%s)", img.Name, img.ImageID)
+				}
+				return img.ImageID
+			}
+		}
+		if os.Getenv("KASM_DEBUG") != "" {
+			log.Printf("[DEBUG] No usable image found, will create new one")
+		}
+	}
+
+	// First define the run config structure
+	runConfig := map[string]interface{}{
+		"hostname":        "kasm-test",
+		"container_name": "kasm_test_container",
+		"network":        "kasm-network",
+		"environment": map[string]string{
+			"KASM_TEST": "true",
+		},
+	}
+
+	// Convert to JSON string
+	runConfigJSON, _ := json.Marshal(runConfig)
+
+	// Define the exec config structure
+	execConfig := map[string]interface{}{
+		"shell": "/bin/bash",
+		"first_launch": map[string]interface{}{
+			"command": "google-chrome --start-maximized",
+			"environment": map[string]string{
+				"CHROME_TEST": "true",
+			},
+		},
+	}
+
+	// Convert to JSON string
+	execConfigJSON, _ := json.Marshal(execConfig)
+
+	// Create a minimal test image since no usable one was found
+	image := &client.CreateImageRequest{
+		ImageSrc:           "img/thumbnails/chrome.png",
+		Categories:         "Testing",
+		RunConfig:          string(runConfigJSON),
+		Description:        "Test image for acceptance tests",
+		FriendlyName:       "Chrome_Test",
+		DockerRegistry:     "https://index.docker.io/v1/",
+		Name:               "kasmweb/chrome:1.16.0",
+		UncompressedSizeMB: 2000,
+		ImageType:          "Container",
+		Enabled:            true,
+		Memory:             2048000000,
+		Cores:              2,
+		GPUCount:           0,
+		RequireGPU:         nil,
+		ExecConfig:         string(execConfigJSON),
+	}
+
+	if os.Getenv("KASM_DEBUG") != "" {
+		log.Printf("[DEBUG] Creating test image with config: %+v", image)
+	}
+
+	// Add retry logic with more detailed error logging
+	var createdImage *client.Image
+	var lastErr error
+	maxRetries := 3
+	for i := 0; i < maxRetries; i++ {
+		if os.Getenv("KASM_DEBUG") != "" {
+			log.Printf("[DEBUG] Attempt %d/%d to create image", i+1, maxRetries)
+		}
+
+		createdImage, lastErr = c.AddWorkspaceImage(image)
+
+		if lastErr != nil {
+			if os.Getenv("KASM_DEBUG") != "" {
+				log.Printf("[DEBUG] Attempt %d failed with error: %v", i+1, lastErr)
+			}
+			// If we haven't reached max retries, wait and try again
+			if i < maxRetries-1 {
+				sleepDuration := time.Second * time.Duration(i+1)
+				if os.Getenv("KASM_DEBUG") != "" {
+					log.Printf("[DEBUG] Waiting %v before next attempt", sleepDuration)
+				}
+				time.Sleep(sleepDuration)
+			}
+			continue
+		}
+
+		if createdImage == nil {
+			lastErr = fmt.Errorf("API returned success but image is nil")
+			if os.Getenv("KASM_DEBUG") != "" {
+				log.Printf("[DEBUG] Attempt %d failed: %v", i+1, lastErr)
+			}
+			if i < maxRetries-1 {
+				time.Sleep(time.Second * time.Duration(i+1))
+			}
+			continue
+		}
+
+		if createdImage.ImageID == "" {
+			lastErr = fmt.Errorf("API returned image but ImageID is empty")
+			if os.Getenv("KASM_DEBUG") != "" {
+				log.Printf("[DEBUG] Attempt %d failed: %v", i+1, lastErr)
+			}
+			if i < maxRetries-1 {
+				time.Sleep(time.Second * time.Duration(i+1))
+			}
+			continue
+		}
+
+		// Success!
+		if os.Getenv("KASM_DEBUG") != "" {
+			log.Printf("[DEBUG] Successfully created test image with ID: %s", createdImage.ImageID)
+			log.Printf("[DEBUG] Image details: %+v", createdImage)
+		}
+		return createdImage.ImageID
+	}
+
+	// If we got here, all retries failed
+	errorMsg := fmt.Sprintf("Failed to create workspace image after %d attempts. Last error: %v", maxRetries, lastErr)
+	if os.Getenv("KASM_DEBUG") != "" {
+		log.Printf("[DEBUG] %s", errorMsg)
+	}
+	t.Fatal(errorMsg)
+	return "" // unreachable
+}
