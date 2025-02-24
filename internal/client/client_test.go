@@ -94,12 +94,12 @@ func TestLogoutUser(t *testing.T) {
 
 func TestGetUserAttributes(t *testing.T) {
 	testCases := []struct {
-		name           string
-		userID         string
-		statusCode     int
-		response       interface{}
-		expectError    bool
-		expectedAttrs  map[string]interface{}
+		name          string
+		userID        string
+		statusCode    int
+		response      interface{}
+		expectError   bool
+		expectedAttrs map[string]interface{}
 	}{
 		{
 			name:       "successful attributes fetch",
@@ -109,23 +109,23 @@ func TestGetUserAttributes(t *testing.T) {
 				"user_attributes": map[string]interface{}{
 					"user_id": "test-user-id",
 					"attributes": map[string]interface{}{
-						"theme": "dark",
+						"theme":    "dark",
 						"language": "en",
 					},
 				},
 			},
 			expectError: false,
 			expectedAttrs: map[string]interface{}{
-				"theme": "dark",
+				"theme":    "dark",
 				"language": "en",
 			},
 		},
 		{
-			name:        "user not found",
-			userID:      "invalid-user",
-			statusCode:  http.StatusNotFound,
-			response:    map[string]interface{}{"error": "User not found"},
-			expectError: true,
+			name:          "user not found",
+			userID:        "invalid-user",
+			statusCode:    http.StatusNotFound,
+			response:      map[string]interface{}{"error": "User not found"},
+			expectError:   true,
 			expectedAttrs: nil,
 		},
 	}
@@ -177,7 +177,7 @@ func TestUpdateUserAttributes(t *testing.T) {
 			name:   "successful update",
 			userID: "test-user-id",
 			attributes: map[string]interface{}{
-				"theme": "light",
+				"theme":    "light",
 				"language": "fr",
 			},
 			statusCode:  http.StatusOK,
@@ -200,7 +200,7 @@ func TestUpdateUserAttributes(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			expectedBody := map[string]interface{}{
 				"target_user": map[string]interface{}{
-					"user_id": tc.userID,
+					"user_id":    tc.userID,
 					"attributes": tc.attributes,
 				},
 			}

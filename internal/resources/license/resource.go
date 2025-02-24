@@ -24,27 +24,27 @@ type licenseResourceModel struct {
 	IssuedTo      types.String `tfsdk:"issued_to"`
 
 	// Computed fields from response
-	Expiration    types.String `tfsdk:"expiration"`
-	IssuedAt      types.String `tfsdk:"issued_at"`
-	Limit         types.Int64  `tfsdk:"limit"`
-	IsVerified    types.Bool   `tfsdk:"is_verified"`
-	LicenseType   types.String `tfsdk:"license_type"`
-	SKU           types.String `tfsdk:"sku"`
+	Expiration  types.String `tfsdk:"expiration"`
+	IssuedAt    types.String `tfsdk:"issued_at"`
+	Limit       types.Int64  `tfsdk:"limit"`
+	IsVerified  types.Bool   `tfsdk:"is_verified"`
+	LicenseType types.String `tfsdk:"license_type"`
+	SKU         types.String `tfsdk:"sku"`
 
 	// Features
-	AutoScaling      types.Bool `tfsdk:"auto_scaling"`
-	Branding         types.Bool `tfsdk:"branding"`
-	SessionStaging   types.Bool `tfsdk:"session_staging"`
-	SessionCasting   types.Bool `tfsdk:"session_casting"`
-	LogForwarding    types.Bool `tfsdk:"log_forwarding"`
-	DeveloperAPI     types.Bool `tfsdk:"developer_api"`
-	InjectSSHKeys    types.Bool `tfsdk:"inject_ssh_keys"`
-	SAML             types.Bool `tfsdk:"saml"`
-	LDAP             types.Bool `tfsdk:"ldap"`
-	SessionSharing   types.Bool `tfsdk:"session_sharing"`
-	LoginBanner      types.Bool `tfsdk:"login_banner"`
+	AutoScaling       types.Bool `tfsdk:"auto_scaling"`
+	Branding          types.Bool `tfsdk:"branding"`
+	SessionStaging    types.Bool `tfsdk:"session_staging"`
+	SessionCasting    types.Bool `tfsdk:"session_casting"`
+	LogForwarding     types.Bool `tfsdk:"log_forwarding"`
+	DeveloperAPI      types.Bool `tfsdk:"developer_api"`
+	InjectSSHKeys     types.Bool `tfsdk:"inject_ssh_keys"`
+	SAML              types.Bool `tfsdk:"saml"`
+	LDAP              types.Bool `tfsdk:"ldap"`
+	SessionSharing    types.Bool `tfsdk:"session_sharing"`
+	LoginBanner       types.Bool `tfsdk:"login_banner"`
 	URLCategorization types.Bool `tfsdk:"url_categorization"`
-	UsageLimit       types.Bool `tfsdk:"usage_limit"`
+	UsageLimit        types.Bool `tfsdk:"usage_limit"`
 }
 
 func New() resource.Resource {

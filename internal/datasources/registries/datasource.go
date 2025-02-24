@@ -34,20 +34,20 @@ func New() datasource.DataSource {
 }
 
 func (d *RegistriesDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-    if req.ProviderData == nil {
-        return
-    }
+	if req.ProviderData == nil {
+		return
+	}
 
-    client, ok := req.ProviderData.(*client.Client)
-    if !ok {
-        resp.Diagnostics.AddError(
-            "Unexpected Data Source Configure Type",
-            fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
-        )
-        return
-    }
+	client, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *client.Client, got: %T", req.ProviderData),
+		)
+		return
+	}
 
-    d.client = client
+	d.client = client
 }
 
 func (d *RegistriesDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
