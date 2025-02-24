@@ -1,0 +1,56 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+
+linters-settings:
+  unused:
+    check-exported: false
+
+issues:
+  exclude-rules:
+    # Exclude unused params in tests
+    - path: _test\.go
+      linters:
+        - unused
+    # Exclude unused test helper functions
+    - path: internal/provider/test_helpers\.go
+      linters:
+        - unused
+    # Exclude debug functions as they might be used later
+    - path: internal/provider/debug\.go
+      linters:
+        - unused
+    # Exclude workspace datasource functions
+    - path: internal/datasources/workspace/datasource\.go
+      linters:
+        - unused
+    # Exclude cast resource validation functions
+    - path: internal/resources/cast/resource\.go
+      linters:
+        - unused
+    # Exclude registry resource functions
+    - path: internal/resources/registry/resource\.go
+      linters:
+        - unused
+    # Exclude image resource validation functions
+    - path: internal/resources/image/resource\.go
+      linters:
+        - unused
+    # Exclude client retry and debug related code
+    - path: internal/client/cast_ops\.go
+      linters:
+        - unused
+    - path: internal/client/client\.go
+      linters:
+        - unused
+    - path: internal/client/user_ops\.go
+      linters:
+        - unused

@@ -24,7 +24,11 @@ func (c *Client) GetCastingConfigs() ([]CastingConfig, error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 400 {
-			return c.handleAPIError(resp, "get cast configs")
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read error response: %v", err)
+			}
+			return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
 		}
 
 		var result struct {
@@ -62,7 +66,11 @@ func (c *Client) GetCastingConfig(castConfigID string) (*CastingConfig, error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 400 {
-			return c.handleAPIError(resp, "get cast config")
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read error response: %v", err)
+			}
+			return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
 		}
 
 		var result struct {
@@ -104,7 +112,11 @@ func (c *Client) CreateCastingConfig(request *CreateCastingConfigRequest) (*Cast
 		defer resp.Body.Close()
 
 		if resp.StatusCode >= 400 {
-			return c.handleAPIError(resp, "create cast config")
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read error response: %v", err)
+			}
+			return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
 		}
 
 		var result struct {
@@ -183,7 +195,14 @@ func (c *Client) DeleteCastingConfig(request *DeleteCastingConfigRequest) error 
 		}
 		defer resp.Body.Close()
 
-		return c.handleAPIError(resp, "delete cast config")
+		if resp.StatusCode >= 400 {
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				return fmt.Errorf("failed to read error response: %v", err)
+			}
+			return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
+		}
+		return nil
 	})
 }
 
@@ -290,7 +309,10 @@ func (c *Client) validateCastingConfig(config *CastingConfig) error {
 // handleAPIError processes API responses and returns appropriate errors
 func (c *Client) handleAPIError(resp *http.Response, operation string) error {
 	if resp.StatusCode >= 400 {
-		body, _ := io.ReadAll(resp.Body)
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read error response: %v", err)
+		}
 		return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(body))
 	}
 	return nil
