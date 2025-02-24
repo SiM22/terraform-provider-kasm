@@ -86,7 +86,8 @@ jobs:
 
   # Stage 4: Setup Kasm and Run Acceptance Tests
   acceptance_tests:
-    needs: [code_quality, security]
+    # needs: [code_quality, security]
+    needs: [code_quality]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
