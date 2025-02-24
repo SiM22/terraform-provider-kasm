@@ -11,7 +11,7 @@ env:
   ADMIN_USERNAME: "admin@kasm.local"
   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
   USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.22.0'
 
 jobs:
   # Stage 1: Initial checks that don't need Kasm
