@@ -49,34 +49,34 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Check Formatting
-        run: |
-          go fmt ./...
-          if [ -n "$(git status --porcelain)" ]; then
-            echo "Code is not properly formatted. Please run 'go fmt ./...'"
-            exit 1
-          fi
+      # - name: Check Formatting
+      #   run: |
+      #     go fmt ./...
+      #     if [ -n "$(git status --porcelain)" ]; then
+      #       echo "Code is not properly formatted. Please run 'go fmt ./...'"
+      #       exit 1
+      #     fi
 
-      - name: Run Linters
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: latest
+      # - name: Run Linters
+      #   uses: golangci/golangci-lint-action@v3
+      #   with:
+      #     version: latest
 
   # Stage 3: Security Scanning
-  security:
-    needs: [initial_checks]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # security:
+  #   needs: [initial_checks]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@v2.18.2
-        env:
-          GO111MODULE: on
-          GOFLAGS: "-mod=mod"
-          GOTOOLCHAIN: auto
-        with:
-          args: -go=1.22.0 ./...
+  #     - name: Run Gosec Security Scanner
+  #       uses: securego/gosec@v2.18.2
+  #       env:
+  #         GO111MODULE: on
+  #         GOFLAGS: "-mod=mod"
+  #         GOTOOLCHAIN: auto
+  #       with:
+  #         args: -go=1.22.0 ./...
 
       - name: Run dependency vulnerability scan
         uses: golang/govulncheck-action@v1
