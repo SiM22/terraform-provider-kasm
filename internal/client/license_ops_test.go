@@ -94,9 +94,13 @@ func TestGetLicenses(t *testing.T) {
 				// Send response
 				w.WriteHeader(tc.responseStatus)
 				if tc.responseStatus == http.StatusOK {
-					json.NewEncoder(w).Encode(tc.responseBody)
+					if err := json.NewEncoder(w).Encode(tc.responseBody); err != nil {
+						t.Fatal(err)
+					}
 				} else {
-					w.Write([]byte(tc.responseBody.(string)))
+					if _, err := w.Write([]byte(tc.responseBody.(string))); err != nil {
+						t.Fatal(err)
+					}
 				}
 			}))
 			defer server.Close()

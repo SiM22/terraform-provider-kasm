@@ -11,7 +11,7 @@ import (
 const (
 	defaultRetryTimeout = 2 * time.Minute
 	defaultRetryDelay   = 5 * time.Second
-	maxRetries         = 3
+	maxRetries          = 3
 )
 
 func isRetryableError(err error) bool {

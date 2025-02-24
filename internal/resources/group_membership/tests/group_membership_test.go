@@ -14,9 +14,9 @@ import (
 func TestAccGroupMembership_basic(t *testing.T) {
 	t.Parallel()
 
-	// Generate unique identifiers with both timestamp and random number
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	username := fmt.Sprintf("testuser_%s", uniqueIdentifier)
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 
@@ -62,9 +62,9 @@ func TestAccGroupMembership_basic(t *testing.T) {
 func TestAccGroupMembership_multiple(t *testing.T) {
 	t.Parallel()
 
-	// Generate unique identifiers with both timestamp and random number
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	username1 := fmt.Sprintf("testuser1_%s", uniqueIdentifier)
 	username2 := fmt.Sprintf("testuser2_%s", uniqueIdentifier)
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)

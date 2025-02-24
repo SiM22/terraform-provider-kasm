@@ -1,3 +1,6 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
@@ -13,6 +16,10 @@ import (
 )
 
 func TestAccGroupImage_errors(t *testing.T) {
+	if testing.Short() || os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	// Remove parallel execution since we're dealing with shared resources
 	// t.Parallel()
 
@@ -30,8 +37,9 @@ func TestAccGroupImage_errors(t *testing.T) {
 		}
 	})
 
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 	username := fmt.Sprintf("testuser_%s", uniqueIdentifier)
 

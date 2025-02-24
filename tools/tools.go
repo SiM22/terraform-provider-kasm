@@ -1,8 +1,8 @@
 package tools
 
 import (
-    // Leave this commented out as it's just for tracking dependencies
-    // _ "github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs"
+// Leave this commented out as it's just for tracking dependencies
+// _ "github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs"
 )
 
 // Import these in your go.mod without actually importing them in code

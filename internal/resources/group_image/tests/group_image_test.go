@@ -1,3 +1,6 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
@@ -182,6 +185,9 @@ func ensureWorkspaceImage(t *testing.T, c *client.Client) string {
 }
 
 func TestAccGroupImage_basic(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
 	t.Parallel()
 
 	// Get client and ensure test image exists
@@ -193,9 +199,9 @@ func TestAccGroupImage_basic(t *testing.T) {
 		cleanupTestImage(t, client)
 	})
 
-	// Generate unique identifiers with both timestamp and random number
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 
 	resource.Test(t, resource.TestCase{
@@ -232,6 +238,9 @@ func TestAccGroupImage_basic(t *testing.T) {
 }
 
 func TestAccGroupImage_multiple(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
 	t.Parallel()
 
 	// Get client and ensure test images exist
@@ -243,8 +252,9 @@ func TestAccGroupImage_multiple(t *testing.T) {
 		cleanupTestImage(t, client)
 	})
 
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 
 	resource.Test(t, resource.TestCase{

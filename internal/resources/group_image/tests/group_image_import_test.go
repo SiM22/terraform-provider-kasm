@@ -1,8 +1,12 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
 	"fmt"
 	"math/rand"
+	"os"
 	"regexp"
 	"testing"
 	"time"
@@ -14,6 +18,10 @@ import (
 )
 
 func TestAccGroupImage_import(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	// Remove parallel execution since we're dealing with shared resources
 	// t.Parallel()
 
@@ -31,9 +39,9 @@ func TestAccGroupImage_import(t *testing.T) {
 		}
 	})
 
-	// Generate unique identifiers with both timestamp and random number
-	rand.Seed(time.Now().UnixNano())
-	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), rand.Intn(10000))
+	// Initialize random source
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	uniqueIdentifier := fmt.Sprintf("%d_%d", time.Now().Unix(), r.Intn(10000))
 	groupname := fmt.Sprintf("testgroup_%s", uniqueIdentifier)
 
 	resource.Test(t, resource.TestCase{

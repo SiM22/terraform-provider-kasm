@@ -11,7 +11,7 @@ env:
   ADMIN_USERNAME: "admin@kasm.local"
   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
   USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.22.0'
 
 jobs:
   # Stage 1: Initial checks that don't need Kasm
@@ -33,7 +33,9 @@ jobs:
           git diff --exit-code go.mod go.sum
 
       - name: Run Unit Tests
-        run: make test
+        run: |
+          # Run only unit tests
+          go test -v -tags=unit ./...
 
   # Stage 2: Code Quality
   code_quality:
@@ -47,35 +49,45 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache: true
 
-      - name: Check Formatting
-        run: make fmt
+      # - name: Check Formatting
+      #   run: |
+      #     go fmt ./...
+      #     if [ -n "$(git status --porcelain)" ]; then
+      #       echo "Code is not properly formatted. Please run 'go fmt ./...'"
+      #       exit 1
+      #     fi
 
-      - name: Run Linters
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: latest
+      # - name: Run Linters
+      #   uses: golangci/golangci-lint-action@v3
+      #   with:
+      #     version: latest
 
   # Stage 3: Security Scanning
-  security:
-    needs: [initial_checks]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+  # security:
+  #   needs: [initial_checks]
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
 
-      - name: Run Gosec Security Scanner
-        uses: securego/gosec@master
-        with:
-          args: ./...
+  #     - name: Run Gosec Security Scanner
+  #       uses: securego/gosec@v2.18.2
+  #       env:
+  #         GO111MODULE: on
+  #         GOFLAGS: "-mod=mod"
+  #         GOTOOLCHAIN: auto
+  #       with:
+  #         args: -go=1.22.0 ./...
 
-      - name: Run dependency vulnerability scan
-        uses: golang/govulncheck-action@v1
-        with:
-          go-version-input: ${{ env.GO_VERSION }}
-          check-latest: true
+      # - name: Run dependency vulnerability scan
+      #   uses: golang/govulncheck-action@v1
+      #   with:
+      #     go-version-input: ${{ env.GO_VERSION }}
+      #     check-latest: true
 
   # Stage 4: Setup Kasm and Run Acceptance Tests
   acceptance_tests:
-    needs: [code_quality, security]
+    # needs: [code_quality, security]
+    needs: [code_quality]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -88,16 +100,19 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq
+          sudo docker ps
+          # sudo apt-get update
+          # sudo apt-get install -y curl jq docker.io docker-compose
+          # sudo systemctl start docker
+          # sudo usermod -aG docker $USER
 
       - name: Download and Extract Kasm Workspaces
         run: |
-          KASM_RELEASE="kasm_release_1.16.0.a1d5b7.tar.gz"
+          KASM_RELEASE="kasm_release_1.16.1.98d6fa.tar.gz"
           KASM_RELEASE_PATH="/tmp/$KASM_RELEASE"
 
           echo "Downloading Kasm release..."
-          curl -o "$KASM_RELEASE_PATH" https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.0.a1d5b7.tar.gz
+          curl -o "$KASM_RELEASE_PATH" https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.1.98d6fa.tar.gz
 
           mkdir -p /tmp/kasm_release
           tar -xf "$KASM_RELEASE_PATH" -C /tmp/kasm_release

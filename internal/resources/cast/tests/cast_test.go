@@ -1,3 +1,6 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
@@ -30,6 +33,10 @@ func cleanupTestImage(t *testing.T, c *client.Client) {
 }
 
 func TestAccKasmCastConfig_basic(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	c := testutils.GetTestClient(t)
 	if c == nil {
 		t.Fatal("Failed to get test client")
@@ -88,6 +95,10 @@ func TestAccKasmCastConfig_basic(t *testing.T) {
 }
 
 func TestAccKasmCastConfig_update(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	c := testutils.GetTestClient(t)
 	imageID := ensureWorkspaceImage(t, c)
 
@@ -132,6 +143,10 @@ func TestAccKasmCastConfig_update(t *testing.T) {
 }
 
 func TestAccKasmCastConfig_validation(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	c := testutils.GetTestClient(t)
 	imageID := ensureWorkspaceImage(t, c)
 
@@ -190,6 +205,10 @@ func TestAccKasmCastConfig_validation(t *testing.T) {
 }
 
 func TestAccKasmCastConfig_fullConfig(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	c := testutils.GetTestClient(t)
 	imageID := ensureWorkspaceImage(t, c)
 
