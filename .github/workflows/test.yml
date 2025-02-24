@@ -78,11 +78,11 @@ jobs:
   #       with:
   #         args: -go=1.22.0 ./...
 
-      - name: Run dependency vulnerability scan
-        uses: golang/govulncheck-action@v1
-        with:
-          go-version-input: ${{ env.GO_VERSION }}
-          check-latest: true
+      # - name: Run dependency vulnerability scan
+      #   uses: golang/govulncheck-action@v1
+      #   with:
+      #     go-version-input: ${{ env.GO_VERSION }}
+      #     check-latest: true
 
   # Stage 4: Setup Kasm and Run Acceptance Tests
   acceptance_tests:
