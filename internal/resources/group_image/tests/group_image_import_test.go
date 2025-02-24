@@ -1,9 +1,13 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"os"
 	"testing"
 	"time"
 
@@ -14,6 +18,10 @@ import (
 )
 
 func TestAccGroupImage_import(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	// Remove parallel execution since we're dealing with shared resources
 	// t.Parallel()
 

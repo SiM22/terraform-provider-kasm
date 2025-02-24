@@ -1,3 +1,6 @@
+//go:build acceptance
+// +build acceptance
+
 package tests
 
 import (
@@ -159,6 +162,10 @@ func waitForGroupMembership(t *testing.T, userID string, groupID string) error {
 }
 
 func TestAccKasmSession_Basic(t *testing.T) {
+	if os.Getenv("TF_ACC") == "" {
+		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
+	}
+
 	// Clean up any existing sessions before starting the test
 	cleanupExistingSessions(t)
 
