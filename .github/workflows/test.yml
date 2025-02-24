@@ -100,10 +100,11 @@ jobs:
 
       - name: Install System Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y curl jq docker.io docker-compose
-          sudo systemctl start docker
-          sudo usermod -aG docker $USER
+          sudo docker ps
+          # sudo apt-get update
+          # sudo apt-get install -y curl jq docker.io docker-compose
+          # sudo systemctl start docker
+          # sudo usermod -aG docker $USER
 
       - name: Download and Extract Kasm Workspaces
         run: |
