@@ -100,11 +100,11 @@ jobs:
 
       - name: Download and Extract Kasm Workspaces
         run: |
-          KASM_RELEASE="kasm_release_1.16.0.a1d5b7.tar.gz"
+          KASM_RELEASE="kasm_release_1.16.1.98d6fa.tar.gz"
           KASM_RELEASE_PATH="/tmp/$KASM_RELEASE"
 
           echo "Downloading Kasm release..."
-          curl -o "$KASM_RELEASE_PATH" https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.0.a1d5b7.tar.gz
+          curl -o "$KASM_RELEASE_PATH" https://kasm-static-content.s3.amazonaws.com/kasm_release_1.16.1.98d6fa.tar.gz
 
           mkdir -p /tmp/kasm_release
           tar -xf "$KASM_RELEASE_PATH" -C /tmp/kasm_release
