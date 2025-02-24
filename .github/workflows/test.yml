@@ -33,7 +33,9 @@ jobs:
           git diff --exit-code go.mod go.sum
 
       - name: Run Unit Tests
-        run: go test -v -tags=unit $(go list ./... | grep -v "/tests/")
+        run: |
+          # Run only unit tests
+          go test -v -tags=unit ./...
 
   # Stage 2: Code Quality
   code_quality:
