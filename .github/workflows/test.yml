@@ -5,6 +5,18 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_call:
+    inputs:
+      run_tests:
+        description: 'Whether to run acceptance tests'
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      ADMIN_PASSWORD:
+        required: true
+      USER_PASSWORD:
+        required: true
 
 env:
   KASM_BASE_URL: "https://localhost"
