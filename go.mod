@@ -1,8 +1,6 @@
 module terraform-provider-kasm
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.21
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.12.0
