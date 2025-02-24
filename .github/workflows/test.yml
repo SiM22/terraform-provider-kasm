@@ -33,7 +33,7 @@ jobs:
           git diff --exit-code go.mod go.sum
 
       - name: Run Unit Tests
-        run: make test
+        run: go test -v -tags=unit $(go list ./... | grep -v "/tests/")
 
   # Stage 2: Code Quality
   code_quality:
@@ -48,7 +48,12 @@ jobs:
           cache: true
 
       - name: Check Formatting
-        run: make fmt
+        run: |
+          go fmt ./...
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "Code is not properly formatted. Please run 'go fmt ./...'"
+            exit 1
+          fi
 
       - name: Run Linters
         uses: golangci/golangci-lint-action@v3
@@ -89,7 +94,9 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y curl jq
+          sudo apt-get install -y curl jq docker.io docker-compose
+          sudo systemctl start docker
+          sudo usermod -aG docker $USER
 
       - name: Download and Extract Kasm Workspaces
         run: |
