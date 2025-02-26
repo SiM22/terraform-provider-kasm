@@ -331,16 +331,6 @@ func (c *Client) Keepalive(kasmID string) (*KeepaliveResponse, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		log.Printf("[WARN] Unexpected status code in keepalive: %d", resp.StatusCode)
-
-		// In a real environment, we would return an error
-		// For testing with fake IDs, we'll just return a mock response
-		if kasmID == "test-kasm-id" {
-			return &KeepaliveResponse{
-				Success: true,
-				Message: "Keepalive successful (mocked for testing)",
-			}, nil
-		}
-
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
