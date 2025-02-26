@@ -225,3 +225,69 @@ func TestUpdateUserAttributes(t *testing.T) {
 		})
 	}
 }
+
+func TestClient_Keepalive(t *testing.T) {
+	tests := []struct {
+		name         string
+		kasmID       string
+		mockResponse string
+		statusCode   int
+		expectError  bool
+	}{
+		{
+			name:         "Successful keepalive",
+			kasmID:       "test-kasm-id",
+			mockResponse: `{"usage_reached": false}`,
+			statusCode:   http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:         "Keepalive with usage reached",
+			kasmID:       "test-kasm-id",
+			mockResponse: `{"usage_reached": true}`,
+			statusCode:   http.StatusOK,
+			expectError:  false,
+		},
+		{
+			name:         "Keepalive with invalid response",
+			kasmID:       "test-kasm-id",
+			mockResponse: `invalid`,
+			statusCode:   http.StatusOK,
+			expectError:  true,
+		},
+		{
+			name:         "Keepalive with server error",
+			kasmID:       "test-kasm-id",
+			mockResponse: `{}`,
+			statusCode:   http.StatusInternalServerError,
+			expectError:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(tt.statusCode)
+				w.Write([]byte(tt.mockResponse))
+			}))
+			defer server.Close()
+
+			client := &Client{
+				HTTPClient: server.Client(),
+				BaseURL:    server.URL,
+				APIKey:     "test-api-key",
+				APISecret:  "test-api-secret",
+			}
+
+			response, err := client.Keepalive(tt.kasmID)
+			if (err != nil) != tt.expectError {
+				t.Errorf("Client.Keepalive() error = %v, expectError %v", err, tt.expectError)
+				return
+			}
+
+			if !tt.expectError && response == nil {
+				t.Error("Client.Keepalive() returned nil response")
+			}
+		})
+	}
+}

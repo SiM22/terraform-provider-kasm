@@ -262,9 +262,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: acceptance-test-logs
-          path: |
-            terraform.log
-            testdata/ai_debug_output.md
+          path: terraform.log
 
       - name: Cleanup Kasm
         if: always()

@@ -27,6 +27,7 @@ import (
 	imageres "terraform-provider-kasm/internal/resources/image"
 	"terraform-provider-kasm/internal/resources/join"
 	"terraform-provider-kasm/internal/resources/kasm"
+	"terraform-provider-kasm/internal/resources/keepalive"
 	"terraform-provider-kasm/internal/resources/license"
 	"terraform-provider-kasm/internal/resources/login"
 	"terraform-provider-kasm/internal/resources/registry"
@@ -209,6 +210,7 @@ func (p *kasmProvider) Resources(_ context.Context) []func() resource.Resource {
 		group_image.New,
 		group_membership.New,
 		join.New,
+		keepalive.NewKeepaliveResource,
 	}
 }
 

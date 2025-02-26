@@ -148,3 +148,17 @@ type KasmServer struct {
 	ZoneName string `json:"zone_name"`
 	Provider string `json:"provider"`
 }
+
+// KeepaliveRequest represents the request body for the keepalive endpoint
+type KeepaliveRequest struct {
+	APIKey    string `json:"api_key"`
+	APISecret string `json:"api_key_secret"`
+	KasmID    string `json:"kasm_id"`
+}
+
+// KeepaliveResponse represents the response from the keepalive endpoint
+type KeepaliveResponse struct {
+	UsageReached bool   `json:"usage_reached"`
+	Success      bool   `json:"success"`
+	Message      string `json:"message"`
+}

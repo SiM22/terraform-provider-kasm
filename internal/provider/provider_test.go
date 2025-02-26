@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -15,6 +16,18 @@ import (
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"kasm": providerserver.NewProtocol6WithError(New()),
+}
+
+func testAccPreCheck(t *testing.T) {
+	if v := os.Getenv("KASM_BASE_URL"); v == "" {
+		t.Fatal("KASM_BASE_URL must be set for acceptance tests")
+	}
+	if v := os.Getenv("KASM_API_KEY"); v == "" {
+		t.Fatal("KASM_API_KEY must be set for acceptance tests")
+	}
+	if v := os.Getenv("KASM_API_SECRET"); v == "" {
+		t.Fatal("KASM_API_SECRET must be set for acceptance tests")
+	}
 }
 
 func TestProvider(t *testing.T) {
