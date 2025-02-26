@@ -75,5 +75,6 @@ package-lock.json
 package.json
 branch-diff.go
 docs/reference docs/
+.github/workflows/tests.yml
 
 .trunk/

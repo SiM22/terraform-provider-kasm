@@ -32,7 +32,7 @@ These APIs are officially documented in the Kasm API documentation.
 | POST /api/public/destroy_kasm | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/join_kasm | Implemented | kasm_join | internal/resources/join | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/set_session_permissions | Implemented | kasm_session_permission | internal/resources/session_permission | ✅ | internal/resources/session_permission/tests/session_permission_basic_test.go |
-| POST /api/public/keepalive | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
+| POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | Unit: internal/resources/keepalive/resource_test.go, Acceptance: internal/resources/keepalive/tests/keepalive_test.go |
 | POST /api/public/frame_stats | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/screenshot | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/exec_command | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
@@ -201,7 +201,6 @@ These APIs are not officially documented in the Kasm API documentation but are a
 
 ### Missing Resources (Documented APIs)
 1. Session Features:
-   - POST /api/public/keepalive (for kasm_keepalive) - Client implementation exists
    - POST /api/public/frame_stats (for kasm_stats) - Client implementation exists
    - POST /api/public/screenshot (for kasm_screenshot) - Client implementation exists
    - POST /api/public/exec_command (for kasm_exec) - Client implementation exists
