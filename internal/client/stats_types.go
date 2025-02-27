@@ -15,7 +15,15 @@ type FrameStats struct {
 }
 
 type FrameStatsResponse struct {
-	Frame FrameStats `json:"frame"`
+	Frame            FrameStats         `json:"frame,omitempty"`
+	Clients          []FrameStatsClient `json:"clients,omitempty"`
+	Analysis         int                `json:"analysis,omitempty"`
+	Screenshot       int                `json:"screenshot,omitempty"`
+	EncodingTotal    int                `json:"encoding_total,omitempty"`
+	VideoScaling     int                `json:"videoscaling,omitempty"`
+	TightJpegEncoder EncoderStats       `json:"tightjpegencoder,omitempty"`
+	TightWebpEncoder EncoderStats       `json:"tightwebpencoder,omitempty"`
+	ErrorMessage     string             `json:"error_message,omitempty"`
 }
 
 type FrameStatsClient struct {

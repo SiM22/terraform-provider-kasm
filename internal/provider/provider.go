@@ -34,6 +34,7 @@ import (
 	"terraform-provider-kasm/internal/resources/session"
 	"terraform-provider-kasm/internal/resources/session_permission"
 	"terraform-provider-kasm/internal/resources/staging"
+	"terraform-provider-kasm/internal/resources/stats"
 	"terraform-provider-kasm/internal/resources/user"
 )
 
@@ -211,6 +212,7 @@ func (p *kasmProvider) Resources(_ context.Context) []func() resource.Resource {
 		group_membership.New,
 		join.New,
 		keepalive.NewKeepaliveResource,
+		stats.NewStatsResource,
 	}
 }
 

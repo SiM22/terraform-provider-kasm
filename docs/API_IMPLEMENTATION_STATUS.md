@@ -31,9 +31,9 @@ These APIs are officially documented in the Kasm API documentation.
 | POST /api/public/request_kasm | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/destroy_kasm | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/join_kasm | Implemented | kasm_join | internal/resources/join | ✅ | internal/resources/kasm/session/tests/session_test.go |
-| POST /api/public/set_session_permissions | Implemented | kasm_session_permission | internal/resources/session_permission | ✅ | internal/resources/session_permission/tests/session_permission_basic_test.go |
-| POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | Unit: internal/resources/keepalive/resource_test.go, Acceptance: internal/resources/keepalive/tests/keepalive_test.go |
-| POST /api/public/frame_stats | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
+| POST /api/public/set_session_permissions | Implemented | kasm_session_permission | internal/resources/session_permission | ✅ | internal/resources/session_permission/tests/session_permission_test.go |
+| POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | internal/resources/keepalive/tests/keepalive_test.go |
+| POST /api/public/get_kasm_frame_stats | Implemented | kasm_stats | internal/client/kasm_ops.go | ✅ | internal/resources/stats/tests/stats_test.go | Requires an active browser connection to the session. **Manual Testing Instructions:** Set `KASM_SKIP_BROWSER_TEST=false` and follow the prompts to open the session URL in a browser. **CI/CD Notes:** Set `KASM_SKIP_BROWSER_TEST=true` to skip in CI environments. Future work needed to automate browser interaction for CI. |
 | POST /api/public/screenshot | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/exec_command | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/get_kasms | Implemented | kasm_sessions | internal/datasources/sessions | ✅ | internal/resources/kasm/session/tests/session_test.go |
@@ -168,27 +168,29 @@ These APIs are officially documented in the Kasm API documentation.
 | DELETE /api/public/delete_group_membership | Implemented | kasm_group_membership | internal/resources/group_membership | ✅ | internal/resources/group_membership/tests/group_membership_test.go |
 | POST /api/public/get_group_memberships | Implemented | kasm_group_memberships | internal/datasources/group_memberships | ✅ | internal/resources/group_membership/tests/group_membership_test.go |
 
-
 ## Undocumented APIs
 
-These APIs are not officially documented in the Kasm API documentation but are available and used in the provider.
+These APIs are not officially documented in the Kasm API documentation but are used by the Kasm web UI.
 
-### Resources
+### Priority APIs to Implement
 
-#### Group Management
-| API Endpoint | Implementation Status | Resource Name | File Location | Tests | Test File |
-|--------------|---------------------|---------------|---------------|-------|-----------|
-| POST /api/public/create_group | Implemented | kasm_group | internal/resources/group | ✅ | internal/resources/group/tests/group_test.go |
-| POST /api/public/update_group | Implemented | kasm_group | internal/resources/group | ✅ | internal/resources/group/tests/group_test.go |
-| DELETE /api/public/delete_group | Implemented | kasm_group | internal/resources/group | ✅ | internal/resources/group/tests/group_test.go |
-| POST /api/public/set_group_membership | Implemented | kasm_group_membership | internal/resources/group_membership | ✅ | internal/resources/group_membership/tests/group_membership_test.go |
+1. High Priority:
+   - POST /api/public/get_user_usage (for kasm_user_usage data source)
+   - POST /api/public/get_session_history (for kasm_session_history data source)
+   - POST /api/public/get_user_sessions (for kasm_user_sessions data source)
 
-### Data Sources
+2. Medium Priority:
+   - POST /api/public/get_server_pools (for kasm_server_pools data source)
+   - POST /api/public/get_server_pool (for kasm_server_pool data source)
+   - POST /api/public/create_server_pool (for kasm_server_pool resource)
+   - POST /api/public/update_server_pool (for kasm_server_pool resource)
+   - POST /api/public/delete_server_pool (for kasm_server_pool resource)
 
-#### Workspace
-| API Endpoint | Implementation Status | Data Source Name | File Location | Tests | Test File |
-|--------------|---------------------|------------------|---------------|-------|-----------|
-| GET /api/public/get_workspace | In Progress | kasm_workspace | internal/datasources/workspace | ❌ | - |
+3. Low Priority:
+   - POST /api/public/get_user_attributes_schema (for kasm_user_attributes_schema data source)
+   - POST /api/public/get_logs (for kasm_logs data source)
+   - POST /api/public/get_system_info (for kasm_system_info data source)
+   - POST /api/public/get_system_metrics (for kasm_system_metrics data source)
 
 ## Missing Features
 
@@ -201,7 +203,6 @@ These APIs are not officially documented in the Kasm API documentation but are a
 
 ### Missing Resources (Documented APIs)
 1. Session Features:
-   - POST /api/public/frame_stats (for kasm_stats) - Client implementation exists
    - POST /api/public/screenshot (for kasm_screenshot) - Client implementation exists
    - POST /api/public/exec_command (for kasm_exec) - Client implementation exists
    - POST /api/public/get_rdp_client_connection_info (for kasm_rdp) - Client implementation exists
