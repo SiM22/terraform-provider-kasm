@@ -24,6 +24,7 @@ env:
   ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
   USER_PASSWORD: ${{ secrets.USER_PASSWORD }}
   GO_VERSION: '1.22.0'
+  KASM_SKIP_BROWSER_TEST: 'true'  # Skip tests that require browser interaction
 
 jobs:
   # Stage 1: Initial checks that don't need Kasm

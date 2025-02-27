@@ -76,5 +76,5 @@ package.json
 branch-diff.go
 docs/reference docs/
 .github/workflows/tests.yml
-
+.codeiumignore
 .trunk/

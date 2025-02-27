@@ -68,3 +68,7 @@ terraform import kasm_stats.example <kasm_id>
    - Resource planning
    - Usage analysis
    - Billing information
+
+5. Requirements:
+   - An active user must be connected to the session for frame stats to be available
+   - If no user is connected, the resource will show a warning and return empty stats

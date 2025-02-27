@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -14,6 +15,7 @@ type FrameStatsRequest struct {
 	APISecret string `json:"api_key_secret"`
 	KasmID    string `json:"kasm_id"`
 	UserID    string `json:"user_id,omitempty"`
+	Client    string `json:"client,omitempty"`
 }
 
 // GetFrameStats retrieves frame statistics for a specific Kasm session
@@ -26,6 +28,7 @@ func (c *Client) GetFrameStats(kasmID string, userID string) (*FrameStatsRespons
 		APISecret: c.APISecret,
 		KasmID:    kasmID,
 		UserID:    userID,
+		Client:    "auto", // Default to auto as per documentation
 	}
 
 	body, err := json.Marshal(requestBody)
@@ -33,7 +36,9 @@ func (c *Client) GetFrameStats(kasmID string, userID string) (*FrameStatsRespons
 		return nil, fmt.Errorf("error marshaling request body: %v", err)
 	}
 
-	resp, err := c.HTTPClient.Post(c.BaseURL+"/api/public/frame_stats", "application/json", bytes.NewBuffer(body))
+	log.Printf("[DEBUG] Getting frame stats for kasm %s", kasmID)
+
+	resp, err := c.HTTPClient.Post(c.BaseURL+"/api/public/get_kasm_frame_stats", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
@@ -47,6 +52,16 @@ func (c *Client) GetFrameStats(kasmID string, userID string) (*FrameStatsRespons
 	var result FrameStatsResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("error decoding response: %v", err)
+	}
+
+	// Check for error message in the response
+	if result.ErrorMessage != "" {
+		log.Printf("[DEBUG] Frame stats API returned error: %s", result.ErrorMessage)
+		if result.ErrorMessage == "Error retrieving frame stats with status code (503)" ||
+			result.ErrorMessage == "Error retrieving frame stats with status code (502)" {
+			return nil, fmt.Errorf("frame stats unavailable: a user must be actively connected to the session")
+		}
+		return nil, fmt.Errorf("frame stats API error: %s", result.ErrorMessage)
 	}
 
 	return &result, nil

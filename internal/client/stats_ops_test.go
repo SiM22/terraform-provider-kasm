@@ -20,6 +20,7 @@ func TestClient_GetFrameStats(t *testing.T) {
 		serverResponse interface{}
 		statusCode     int
 		expectError    bool
+		errorContains  string
 	}{
 		{
 			name:       "successful request",
@@ -40,7 +41,8 @@ func TestClient_GetFrameStats(t *testing.T) {
 					},
 				},
 			},
-			expectError: false,
+			expectError:   false,
+			errorContains: "",
 		},
 		{
 			name:           "server error",
@@ -49,6 +51,7 @@ func TestClient_GetFrameStats(t *testing.T) {
 			statusCode:     http.StatusInternalServerError,
 			serverResponse: map[string]interface{}{"error": "internal server error"},
 			expectError:    true,
+			errorContains:  "API request failed",
 		},
 		{
 			name:           "invalid response",
@@ -57,6 +60,29 @@ func TestClient_GetFrameStats(t *testing.T) {
 			statusCode:     http.StatusOK,
 			serverResponse: "invalid json",
 			expectError:    true,
+			errorContains:  "error decoding response",
+		},
+		{
+			name:       "503 service unavailable error",
+			kasmID:     "test-kasm-id",
+			userID:     "test-user-id",
+			statusCode: http.StatusOK, // The API returns 200 OK with an error message
+			serverResponse: FrameStatsResponse{
+				ErrorMessage: "Error retrieving frame stats with status code (503)",
+			},
+			expectError:   true,
+			errorContains: "a user must be actively connected to the session",
+		},
+		{
+			name:       "502 service unavailable error",
+			kasmID:     "test-kasm-id",
+			userID:     "test-user-id",
+			statusCode: http.StatusOK, // The API returns 200 OK with an error message
+			serverResponse: FrameStatsResponse{
+				ErrorMessage: "Error retrieving frame stats with status code (502)",
+			},
+			expectError:   true,
+			errorContains: "a user must be actively connected to the session",
 		},
 	}
 
@@ -65,7 +91,7 @@ func TestClient_GetFrameStats(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				// Check request method and path
 				assert.Equal(t, http.MethodPost, r.Method)
-				assert.Equal(t, "/api/public/frame_stats", r.URL.Path)
+				assert.Equal(t, "/api/public/get_kasm_frame_stats", r.URL.Path)
 
 				// Decode request body
 				var reqBody FrameStatsRequest
@@ -77,6 +103,7 @@ func TestClient_GetFrameStats(t *testing.T) {
 				assert.Equal(t, "test-api-secret", reqBody.APISecret)
 				assert.Equal(t, tc.kasmID, reqBody.KasmID)
 				assert.Equal(t, tc.userID, reqBody.UserID)
+				assert.Equal(t, "auto", reqBody.Client)
 
 				// Set response status code
 				w.WriteHeader(tc.statusCode)
@@ -105,6 +132,7 @@ func TestClient_GetFrameStats(t *testing.T) {
 			if tc.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, response)
+				assert.Contains(t, err.Error(), tc.errorContains)
 			} else {
 				assert.NoError(t, err)
 				assert.NotNil(t, response)

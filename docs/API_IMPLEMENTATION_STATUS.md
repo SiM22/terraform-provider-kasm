@@ -33,7 +33,7 @@ These APIs are officially documented in the Kasm API documentation.
 | POST /api/public/join_kasm | Implemented | kasm_join | internal/resources/join | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/set_session_permissions | Implemented | kasm_session_permission | internal/resources/session_permission | ✅ | internal/resources/session_permission/tests/session_permission_test.go |
 | POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | internal/resources/keepalive/tests/keepalive_test.go |
-| POST /api/public/frame_stats | Implemented | kasm_stats | internal/resources/stats | ✅ | internal/resources/stats/tests/stats_test.go |
+| POST /api/public/get_kasm_frame_stats | Implemented | kasm_stats | internal/client/kasm_ops.go | ✅ | internal/resources/stats/tests/stats_test.go | Requires an active browser connection to the session. **Manual Testing Instructions:** Set `KASM_SKIP_BROWSER_TEST=false` and follow the prompts to open the session URL in a browser. **CI/CD Notes:** Set `KASM_SKIP_BROWSER_TEST=true` to skip in CI environments. Future work needed to automate browser interaction for CI. |
 | POST /api/public/screenshot | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/exec_command | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/get_kasms | Implemented | kasm_sessions | internal/datasources/sessions | ✅ | internal/resources/kasm/session/tests/session_test.go |
@@ -191,10 +191,6 @@ These APIs are not officially documented in the Kasm API documentation but are u
    - POST /api/public/get_logs (for kasm_logs data source)
    - POST /api/public/get_system_info (for kasm_system_info data source)
    - POST /api/public/get_system_metrics (for kasm_system_metrics data source)
-
-### Implemented Undocumented APIs
-
-- POST /api/public/frame_stats (for kasm_stats) - Implemented in internal/resources/stats
 
 ## Missing Features
 

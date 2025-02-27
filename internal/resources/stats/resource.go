@@ -3,6 +3,7 @@ package stats
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -193,6 +194,18 @@ func (r *statsResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	// Get refreshed stats
 	frameStats, err := r.client.GetFrameStats(state.KasmID.ValueString(), state.UserID.ValueString())
 	if err != nil {
+		// If the error is about needing an active user connection, we'll handle it gracefully
+		if strings.Contains(err.Error(), "a user must be actively connected to the session") {
+			resp.Diagnostics.AddWarning(
+				"Frame Stats Unavailable",
+				"Frame stats are only available when a user is actively connected to the session. Connect to the session in a browser and try again.",
+			)
+			// Keep the existing state
+			diags = resp.State.Set(ctx, &state)
+			resp.Diagnostics.Append(diags...)
+			return
+		}
+
 		resp.Diagnostics.AddError(
 			"Error Reading Frame Stats",
 			fmt.Sprintf("Could not read frame stats: %s", err),
@@ -201,14 +214,27 @@ func (r *statsResource) Read(ctx context.Context, req resource.ReadRequest, resp
 	}
 
 	// Update state with refreshed values
-	state.ResX = types.Int64Value(int64(frameStats.Frame.ResX))
-	state.ResY = types.Int64Value(int64(frameStats.Frame.ResY))
-	state.Changed = types.Int64Value(int64(frameStats.Frame.Changed))
-	state.ServerTime = types.Int64Value(int64(frameStats.Frame.ServerTime))
-	state.ClientCount = types.Int64Value(int64(len(frameStats.Frame.Clients)))
-	state.Analysis = types.Int64Value(int64(frameStats.Frame.Analysis))
-	state.Screenshot = types.Int64Value(int64(frameStats.Frame.Screenshot))
-	state.EncodingTime = types.Int64Value(int64(frameStats.Frame.EncodingTotal))
+	// Check if we have frame stats in the response
+	if frameStats.Frame.ResX > 0 {
+		state.ResX = types.Int64Value(int64(frameStats.Frame.ResX))
+		state.ResY = types.Int64Value(int64(frameStats.Frame.ResY))
+		state.Changed = types.Int64Value(int64(frameStats.Frame.Changed))
+		state.ServerTime = types.Int64Value(int64(frameStats.Frame.ServerTime))
+		state.ClientCount = types.Int64Value(int64(len(frameStats.Frame.Clients)))
+		state.Analysis = types.Int64Value(int64(frameStats.Frame.Analysis))
+		state.Screenshot = types.Int64Value(int64(frameStats.Frame.Screenshot))
+		state.EncodingTime = types.Int64Value(int64(frameStats.Frame.EncodingTotal))
+	} else {
+		// Handle the case where stats are in the top-level response
+		state.ResX = types.Int64Value(int64(0))       // We don't have this info
+		state.ResY = types.Int64Value(int64(0))       // We don't have this info
+		state.Changed = types.Int64Value(int64(0))    // We don't have this info
+		state.ServerTime = types.Int64Value(int64(0)) // We don't have this info
+		state.ClientCount = types.Int64Value(int64(len(frameStats.Clients)))
+		state.Analysis = types.Int64Value(int64(frameStats.Analysis))
+		state.Screenshot = types.Int64Value(int64(frameStats.Screenshot))
+		state.EncodingTime = types.Int64Value(int64(frameStats.EncodingTotal))
+	}
 	state.LastUpdated = types.StringValue(time.Now().Format(time.RFC3339))
 
 	// Set refreshed state
