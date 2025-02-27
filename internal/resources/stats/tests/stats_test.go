@@ -67,7 +67,7 @@ data "kasm_images" "available" {
 }
 
 resource "kasm_session" "test" {
-    image_id = data.kasm_images.available.images[0].image_id
+    image_id = data.kasm_images.available.images[0].id
     user_id = kasm_user.test.id
     enable_stats = true
 }
