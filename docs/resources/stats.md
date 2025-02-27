@@ -1,56 +1,48 @@
 # Stats Resource
 
-Manages statistics collection for Kasm sessions. This resource allows you to configure and manage performance and usage statistics for workspace sessions.
+Manages frame statistics for Kasm sessions. This resource allows you to retrieve performance and usage statistics for workspace sessions.
 
 ## Example Usage
 
 ### Basic Stats Configuration
 ```hcl
 resource "kasm_stats" "example" {
-  session_id = kasm_session.workspace.id
-  enabled    = true
+  kasm_id = kasm_session.workspace.id
 }
 ```
 
-### Detailed Stats Configuration
+### Stats with User ID
 ```hcl
 resource "kasm_stats" "detailed" {
-  session_id = kasm_session.workspace.id
-  enabled    = true
-
-  collection_settings = {
-    interval     = 60
-    cpu_stats    = true
-    memory_stats = true
-    network_stats = true
-    disk_stats   = true
-  }
+  kasm_id = kasm_session.workspace.id
+  user_id = kasm_user.example.id
 }
 ```
 
 ## Argument Reference
 
-* `session_id` - (Required) The ID of the session to collect stats for.
-* `enabled` - (Required) Whether stats collection is enabled.
-* `collection_settings` - (Optional) Statistics collection settings:
-  * `interval` - Collection interval in seconds
-  * `cpu_stats` - Collect CPU statistics
-  * `memory_stats` - Collect memory statistics
-  * `network_stats` - Collect network statistics
-  * `disk_stats` - Collect disk statistics
+* `kasm_id` - (Required) The ID of the Kasm session to retrieve stats for.
+* `user_id` - (Optional) The ID of the user who owns the session.
 
 ## Attribute Reference
 
-* `id` - The unique identifier for the stats configuration.
-* `current_stats` - Current statistics snapshot.
-* `collection_status` - Status of stats collection.
+* `id` - The unique identifier for the stats resource.
+* `res_x` - The horizontal resolution of the session.
+* `res_y` - The vertical resolution of the session.
+* `changed` - The number of changed pixels.
+* `server_time` - The server processing time in milliseconds.
+* `client_count` - The number of connected clients.
+* `analysis` - The time spent on frame analysis in milliseconds.
+* `screenshot` - The time spent on screenshot processing in milliseconds.
+* `encoding_time` - The total encoding time in milliseconds.
+* `last_updated` - Timestamp of the last refresh of the stats.
 
 ## Import
 
-Import a stats configuration:
+Stats can be imported using the Kasm ID:
 
 ```bash
-terraform import kasm_stats.example session_id:stats_config_id
+terraform import kasm_stats.example <kasm_id>
 ```
 
 ## Notes
