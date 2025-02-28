@@ -36,6 +36,23 @@ func (v StringValidator) ValidateString(ctx context.Context, req validator.Strin
 	}
 }
 
+// StringOneOf returns a validator which ensures that any configured string
+// value matches one of the given values exactly.
+func StringOneOf(validValues ...string) validator.String {
+	return StringValidator{
+		Desc: fmt.Sprintf("value must be one of: %v", validValues),
+		ValidateFn: func(value string) bool {
+			for _, validValue := range validValues {
+				if value == validValue {
+					return true
+				}
+			}
+			return false
+		},
+		ErrMessage: fmt.Sprintf("value must be one of: %v", validValues),
+	}
+}
+
 // Int64Validator is a custom int64 validator
 type Int64Validator struct {
 	Desc       string

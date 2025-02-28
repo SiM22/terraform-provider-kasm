@@ -91,7 +91,7 @@ These APIs are officially documented in the Kasm API documentation.
 #### RDP Client Connection
 | API Endpoint | Implementation Status | Resource Name | File Location | Tests | Test File |
 |--------------|---------------------|---------------|---------------|-------|-----------|
-| POST /api/public/get_rdp_client_connection_info | Not Implemented | - | - | ❌ | - |
+| POST /api/public/get_rdp_client_connection_info | Implemented | kasm_rdp_client_connection_info | internal/datasources/rdp | ✅ | internal/datasources/rdp/tests/datasource_test.go |
 
 #### Egress Management
 | API Endpoint | Implementation Status | Resource Name | File Location | Tests | Test File |
@@ -168,6 +168,11 @@ These APIs are officially documented in the Kasm API documentation.
 | DELETE /api/public/delete_group_membership | Implemented | kasm_group_membership | internal/resources/group_membership | ✅ | internal/resources/group_membership/tests/group_membership_test.go |
 | POST /api/public/get_group_memberships | Implemented | kasm_group_memberships | internal/datasources/group_memberships | ✅ | internal/resources/group_membership/tests/group_membership_test.go |
 
+#### RDP Client Connection
+| API Endpoint | Implementation Status | Data Source Name | File Location | Tests | Test File |
+|--------------|---------------------|------------------|---------------|-------|-----------|
+| POST /api/public/get_rdp_client_connection_info | Implemented | kasm_rdp_client_connection_info | internal/datasources/rdp | ✅ | internal/datasources/rdp/tests/datasource_test.go |
+
 ## Undocumented APIs
 
 These APIs are not officially documented in the Kasm API documentation but are used by the Kasm web UI.
@@ -205,7 +210,6 @@ These APIs are not officially documented in the Kasm API documentation but are u
 1. Session Features:
    - POST /api/public/screenshot (for kasm_screenshot) - Client implementation exists
    - POST /api/public/exec_command (for kasm_exec) - Client implementation exists
-   - POST /api/public/get_rdp_client_connection_info (for kasm_rdp) - Client implementation exists
 
 ### Additional Undocumented Resources Found
 1. Login Management:
