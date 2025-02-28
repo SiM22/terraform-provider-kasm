@@ -16,6 +16,7 @@ import (
 	"terraform-provider-kasm/internal/client"
 	groupsds "terraform-provider-kasm/internal/datasources/groups"
 	imageds "terraform-provider-kasm/internal/datasources/images"
+	rdpds "terraform-provider-kasm/internal/datasources/rdp"
 	registryds "terraform-provider-kasm/internal/datasources/registries"
 	registryimageds "terraform-provider-kasm/internal/datasources/registry_images"
 	usersds "terraform-provider-kasm/internal/datasources/users_list"
@@ -27,7 +28,6 @@ import (
 	imageres "terraform-provider-kasm/internal/resources/image"
 	"terraform-provider-kasm/internal/resources/join"
 	"terraform-provider-kasm/internal/resources/kasm"
-	"terraform-provider-kasm/internal/resources/keepalive"
 	"terraform-provider-kasm/internal/resources/license"
 	"terraform-provider-kasm/internal/resources/login"
 	"terraform-provider-kasm/internal/resources/registry"
@@ -43,6 +43,8 @@ var _ provider.Provider = &kasmProvider{}
 type kasmProvider struct {
 	// version string
 	client *client.Client
+	// Custom server URL for testing
+	testServerURL string
 }
 
 type kasmProviderModel struct {
@@ -52,8 +54,12 @@ type kasmProviderModel struct {
 	Insecure  types.Bool   `tfsdk:"insecure"`
 }
 
-func New() provider.Provider {
-	return &kasmProvider{}
+func New(opts ...string) provider.Provider {
+	p := &kasmProvider{}
+	if len(opts) > 0 && opts[0] != "" {
+		p.testServerURL = opts[0]
+	}
+	return p
 }
 
 func (p *kasmProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -101,12 +107,17 @@ func (p *kasmProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 
 	// First check configuration values
 	if config.BaseURL.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("base_url"),
-			"Missing Kasm API Base URL",
-			"The provider requires a base_url value to be set in the configuration.",
-		)
-		hasConfigErrors = true
+		// If we have a test server URL, use it
+		if p.testServerURL != "" {
+			baseURL = p.testServerURL
+		} else {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("base_url"),
+				"Missing Kasm API Base URL",
+				"The provider requires a base_url value to be set in the configuration.",
+			)
+			hasConfigErrors = true
+		}
 	} else {
 		baseURL = config.BaseURL.ValueString()
 		// Validate URL format
@@ -121,23 +132,33 @@ func (p *kasmProvider) Configure(ctx context.Context, req provider.ConfigureRequ
 	}
 
 	if config.APIKey.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_key"),
-			"Missing Kasm API Key",
-			"The provider requires an api_key value to be set in the configuration.",
-		)
-		hasConfigErrors = true
+		// If we have a test server URL, use a dummy API key
+		if p.testServerURL != "" {
+			apiKey = "test-api-key"
+		} else {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("api_key"),
+				"Missing Kasm API Key",
+				"The provider requires an api_key value to be set in the configuration.",
+			)
+			hasConfigErrors = true
+		}
 	} else {
 		apiKey = config.APIKey.ValueString()
 	}
 
 	if config.APISecret.IsNull() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("api_secret"),
-			"Missing Kasm API Secret",
-			"The provider requires an api_secret value to be set in the configuration.",
-		)
-		hasConfigErrors = true
+		// If we have a test server URL, use a dummy API secret
+		if p.testServerURL != "" {
+			apiSecret = "test-api-secret"
+		} else {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("api_secret"),
+				"Missing Kasm API Secret",
+				"The provider requires an api_secret value to be set in the configuration.",
+			)
+			hasConfigErrors = true
+		}
 	} else {
 		apiSecret = config.APISecret.ValueString()
 	}
@@ -211,7 +232,6 @@ func (p *kasmProvider) Resources(_ context.Context) []func() resource.Resource {
 		group_image.New,
 		group_membership.New,
 		join.New,
-		keepalive.NewKeepaliveResource,
 		stats.NewStatsResource,
 	}
 }
@@ -224,5 +244,6 @@ func (p *kasmProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		registryimageds.New,
 		groupsds.New,
 		usersds.New,
+		rdpds.NewRDPClientConnectionInfoDataSource,
 	}
 }
