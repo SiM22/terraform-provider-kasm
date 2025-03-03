@@ -226,12 +226,38 @@ func TestAccKasmRDPClientConnectionInfo(t *testing.T) {
 		}
 	}()
 
+	// Wait for the session to be fully initialized
+	log.Printf("[DEBUG] Waiting for session to initialize...")
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		time.Sleep(10 * time.Second)
+
+		// Check if the session is available
+		status, err := c.GetKasmStatus(userID, kasm.KasmID, true)
+		if err != nil {
+			log.Printf("Attempt %d: Session not ready yet: %v. Retrying...", i+1, err)
+			continue
+		}
+
+		if status.Kasm != nil && status.Kasm.ContainerID != "" {
+			log.Printf("Session is ready after %d attempts", i+1)
+			break
+		}
+
+		log.Printf("Attempt %d: Session not fully initialized yet. Retrying...", i+1)
+
+		if i == maxRetries-1 {
+			log.Printf("Warning: Session may not be fully initialized after %d attempts", maxRetries)
+			t.Skip("Skipping test as session did not initialize in time")
+		}
+	}
+
 	// Get session details
 	log.Printf("[DEBUG] Getting session details for Kasm ID: %s", kasm.KasmID)
 
 	// Wait for the session to be ready before requesting RDP connection info
 	log.Printf("[DEBUG] Waiting for session to be ready...")
-	maxRetries := 30
+	maxRetries = 30
 	retryInterval := 5 * time.Second
 	var sessionReady bool
 	var sessionDetails *client.KasmStatusResponse

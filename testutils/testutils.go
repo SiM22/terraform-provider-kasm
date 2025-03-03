@@ -2,9 +2,12 @@ package testutils
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
@@ -64,7 +67,7 @@ var TestAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServe
 }
 
 // GetTestClient returns a configured Kasm client for testing
-func GetTestClient(t *testing.T) *client.Client {
+func GetTestClient(t testing.TB) *client.Client {
 	return client.NewClient(
 		os.Getenv("KASM_BASE_URL"),
 		os.Getenv("KASM_API_KEY"),
@@ -87,6 +90,100 @@ provider "kasm" {
 // ProviderConfig (uppercase) for external use
 func ProviderConfig() string {
 	return providerConfig()
+}
+
+// GenerateUniqueUsername generates a unique username for testing
+func GenerateUniqueUsername() string {
+	// Use timestamp and random number to ensure uniqueness
+	timestamp := time.Now().Unix()
+	randomNum := rand.Intn(10000)
+	return fmt.Sprintf("testuser_%d_%d", timestamp, randomNum)
+}
+
+// CleanupExistingSessions cleans up any existing sessions
+func CleanupExistingSessions(t testing.TB) {
+	// Get the client
+	c := GetTestClient(t)
+	if c == nil {
+		t.Fatal("Failed to get test client")
+	}
+
+	// Get all sessions
+	kasms, err := c.GetKasms()
+	if err != nil {
+		t.Logf("Warning: Failed to get existing sessions: %v", err)
+		return
+	}
+
+	// Destroy each session
+	for _, kasm := range kasms.Kasms {
+		err := c.DestroyKasm(kasm.UserID, kasm.KasmID)
+		if err != nil {
+			t.Logf("Warning: Failed to destroy session %s: %v", kasm.KasmID, err)
+		}
+	}
+}
+
+// EnsureImageAvailable ensures a valid image is available for testing
+func EnsureImageAvailable(t testing.TB) (string, bool) {
+	maxRetries := 10
+	retryDelay := 5 * time.Second
+
+	// Get the client
+	c := GetTestClient(t)
+	if c == nil {
+		t.Fatal("Failed to get test client")
+		return "", false
+	}
+
+	// Try to get images with retries
+	var images []client.Image
+	for i := 0; i < maxRetries; i++ {
+		resp, err := c.GetImages()
+		if err != nil {
+			t.Logf("Warning: Failed to get images (attempt %d/%d): %v", i+1, maxRetries, err)
+			time.Sleep(retryDelay)
+			continue
+		}
+
+		images = resp
+		break
+	}
+
+	if len(images) == 0 {
+		t.Log("No images available for testing")
+		return "", false
+	}
+
+	// Find a suitable image (prefer Ubuntu or similar if available)
+	preferredNames := []string{"ubuntu", "debian", "centos", "fedora", "alpine"}
+
+	// First try to find a preferred image
+	for _, name := range preferredNames {
+		for _, img := range images {
+			if img.Enabled && (containsIgnoreCase(img.Name, name) || containsIgnoreCase(img.FriendlyName, name)) {
+				t.Logf("Found preferred image: %s (%s)", img.FriendlyName, img.ImageID)
+				return img.ImageID, true
+			}
+		}
+	}
+
+	// If no preferred image, use the first enabled image
+	for _, img := range images {
+		if img.Enabled {
+			t.Logf("Using image: %s (%s)", img.FriendlyName, img.ImageID)
+			return img.ImageID, true
+		}
+	}
+
+	t.Log("No enabled images available for testing")
+	return "", false
+}
+
+// Helper function to check if a string contains another string (case insensitive)
+func containsIgnoreCase(s, substr string) bool {
+	s, substr = strings.ToLower(s), strings.ToLower(substr)
+	return strings.Contains(s, substr)
 }
 
 // User test configurations

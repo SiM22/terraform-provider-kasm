@@ -78,3 +78,5 @@ docs/reference docs/
 .github/workflows/tests.yml
 .codeiumignore
 .trunk/
+test_output.log
+test_summary.py
