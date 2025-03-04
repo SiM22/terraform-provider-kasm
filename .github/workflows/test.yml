@@ -3,6 +3,9 @@ name: Terraform Provider CI/CD
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
   pull_request:
     branches: [ main ]
   workflow_call:
@@ -47,8 +50,17 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          # Run only unit tests
-          go test -v -tags=unit ./...
+          # Run only unit tests with JSON output for reporting
+          go test -v -tags=unit ./... -json > unit-test-results.json
+
+      - name: Generate Unit Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()    # run this step even if previous step failed
+        with:
+          name: Unit Tests            # Name of the check run which will be created
+          path: unit-test-results.json # Path to test results
+          reporter: go-json           # Format of test results
+          fail-on-error: false        # Don't fail the workflow if tests fail
 
   # Stage 2: Code Quality
   code_quality:
@@ -98,10 +110,12 @@ jobs:
       #     check-latest: true
 
   # Stage 4: Setup Kasm and Run Acceptance Tests
+  # Only run on pull requests or when explicitly triggered
   acceptance_tests:
     # needs: [code_quality, security]
     needs: [code_quality]
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || inputs.run_tests
     steps:
       - uses: actions/checkout@v4
 
@@ -237,33 +251,139 @@ jobs:
             exit 1
           fi
 
-      # Run tests in specific order
-      - name: Run Registry Tests
-        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/registry/tests/...
+      # Create directory for test results
+      - name: Create test results directory
+        run: mkdir -p test-results
 
-      - name: Run Cast Tests
-        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/cast/tests/...
+      # Run tests in groups based on API categories with JSON output
+      - name: Run User Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/user/tests/... \
+            ./internal/datasources/users_list/tests/... \
+            -json > test-results/user-management-tests.json
 
-      - name: Run Session Tests
-        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/kasm/session/tests/...
+      - name: Run Session Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/kasm/session/tests/... \
+            ./internal/resources/join/tests/... \
+            ./internal/resources/session_permission/tests/... \
+            ./internal/resources/keepalive/tests/... \
+            ./internal/resources/stats/tests/... \
+            ./internal/datasources/sessions/tests/... \
+            ./internal/datasources/session_status/tests/... \
+            ./internal/datasources/rdp/tests/... \
+            -json > test-results/session-management-tests.json
 
-      - name: Run Group Tests
-        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/group/tests/...
+      - name: Run Image Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/image/tests/... \
+            ./internal/datasources/images/tests/... \
+            -json > test-results/image-management-tests.json
 
-      - name: Run User Tests
-        run: TF_ACC=1 go test -v -tags=acceptance ./internal/resources/user/tests/...
+      - name: Run Registry Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/registry/tests/... \
+            ./internal/datasources/registries/tests/... \
+            ./internal/datasources/registry_images/tests/... \
+            -json > test-results/registry-management-tests.json
+
+      - name: Run Cast Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/cast/tests/... \
+            -json > test-results/cast-management-tests.json
+
+      - name: Run Group Management Tests
+        run: |
+          TF_ACC=1 go test -v -tags=acceptance \
+            ./internal/resources/group/tests/... \
+            ./internal/resources/group_membership/tests/... \
+            ./internal/resources/group_image/tests/... \
+            ./internal/datasources/group_images/tests/... \
+            -json > test-results/group-management-tests.json
 
       - name: Run Remaining Tests
         run: |
           TF_ACC=1 go test -v -tags=acceptance \
-            $(go list ./... | grep -v 'registry/tests\|cast/tests\|session/tests\|group/tests\|user/tests')
+            $(go list ./... | grep -v 'user/tests\|users_list/tests\|session/tests\|join/tests\|session_permission/tests\|keepalive/tests\|stats/tests\|sessions/tests\|session_status/tests\|rdp/tests\|image/tests\|images/tests\|registry/tests\|registries/tests\|registry_images/tests\|cast/tests\|group/tests\|group_membership/tests\|group_image/tests\|group_images/tests') \
+            -json > test-results/remaining-tests.json
+
+      # Generate test reports for each category
+      - name: Generate User Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: User Management Tests
+          path: test-results/user-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Session Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Session Management Tests
+          path: test-results/session-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Image Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Image Management Tests
+          path: test-results/image-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Registry Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Registry Management Tests
+          path: test-results/registry-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Cast Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Cast Management Tests
+          path: test-results/cast-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Group Management Test Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Group Management Tests
+          path: test-results/group-management-tests.json
+          reporter: go-json
+          fail-on-error: false
+
+      - name: Generate Remaining Tests Report
+        uses: dorny/test-reporter@v1
+        if: success() || failure()
+        with:
+          name: Remaining Tests
+          path: test-results/remaining-tests.json
+          reporter: go-json
+          fail-on-error: false
 
       - name: Upload Test Logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: acceptance-test-logs
-          path: terraform.log
+          path: |
+            terraform.log
+            test-results/*.json
 
       - name: Cleanup Kasm
         if: always()
