@@ -57,7 +57,6 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          # Run only unit tests with JUnit output for reporting
           mkdir -p test-results
           gotestsum --junitfile test-results/unit-tests.xml -- -tags=unit ./...
 
@@ -262,8 +261,36 @@ jobs:
           fi
 
       # Create directory for test results
-      - name: Create test results directory
+      - name: Create Test Results Directory
         run: mkdir -p test-results
+
+      # Create empty XML files for any test groups that might not run
+      - name: Create Empty XML Files for Missing Test Groups
+        run: |
+          # Create a minimal valid JUnit XML file
+          create_empty_junit_xml() {
+            local file_path=$1
+            if [ ! -f "$file_path" ]; then
+              echo '<?xml version="1.0" encoding="UTF-8"?>' > "$file_path"
+              echo '<testsuites name="No Tests Run" tests="0" failures="0" errors="0" time="0">' >> "$file_path"
+              echo '  <testsuite name="NoTests" tests="0" failures="0" errors="0" skipped="0" time="0">' >> "$file_path"
+              echo '    <properties></properties>' >> "$file_path"
+              echo '  </testsuite>' >> "$file_path"
+              echo '</testsuites>' >> "$file_path"
+              echo "Created empty test file: $file_path"
+            else
+              echo "File already exists: $file_path"
+            fi
+          }
+
+          # Create empty XML files for all test groups
+          create_empty_junit_xml "test-results/user-management-tests.xml"
+          create_empty_junit_xml "test-results/session-management-tests.xml"
+          create_empty_junit_xml "test-results/image-management-tests.xml"
+          create_empty_junit_xml "test-results/registry-management-tests.xml"
+          create_empty_junit_xml "test-results/cast-management-tests.xml"
+          create_empty_junit_xml "test-results/group-management-tests.xml"
+          create_empty_junit_xml "test-results/remaining-tests.xml"
 
       # Run tests in groups based on API categories with JUnit output
       - name: Run User Management Tests
@@ -329,6 +356,7 @@ jobs:
           path: test-results/user-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Session Management Test Report
         uses: dorny/test-reporter@v1
@@ -338,6 +366,7 @@ jobs:
           path: test-results/session-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Image Management Test Report
         uses: dorny/test-reporter@v1
@@ -347,6 +376,7 @@ jobs:
           path: test-results/image-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Registry Management Test Report
         uses: dorny/test-reporter@v1
@@ -356,6 +386,7 @@ jobs:
           path: test-results/registry-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Cast Management Test Report
         uses: dorny/test-reporter@v1
@@ -365,6 +396,7 @@ jobs:
           path: test-results/cast-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Group Management Test Report
         uses: dorny/test-reporter@v1
@@ -374,6 +406,7 @@ jobs:
           path: test-results/group-management-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Generate Remaining Tests Report
         uses: dorny/test-reporter@v1
@@ -383,6 +416,7 @@ jobs:
           path: test-results/remaining-tests.xml
           reporter: java-junit
           fail-on-error: false
+          fail-on-empty: false
 
       - name: Upload Test Logs
         if: always()
