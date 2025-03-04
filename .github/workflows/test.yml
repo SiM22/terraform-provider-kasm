@@ -48,19 +48,22 @@ jobs:
           go mod tidy
           git diff --exit-code go.mod go.sum
 
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
+
       - name: Run Unit Tests
         run: |
-          # Run only unit tests with JSON output for reporting
-          go test -v -tags=unit ./... -json > unit-test-results.json
+          # Run only unit tests with JUnit output for reporting
+          mkdir -p test-results
+          gotestsum --junitfile test-results/unit-tests.xml -- -tags=unit ./...
 
-      - name: Generate Unit Test Report
+      - name: Test Report
         uses: dorny/test-reporter@v1
         if: success() || failure()    # run this step even if previous step failed
         with:
           name: Unit Tests            # Name of the check run which will be created
-          path: unit-test-results.json # Path to test results
-          reporter: go-json           # Format of test results
-          fail-on-error: false        # Don't fail the workflow if tests fail
+          path: test-results/unit-tests.xml # Path to test results
+          reporter: java-junit        # Format of test results
 
   # Stage 2: Code Quality
   code_quality:
@@ -124,6 +127,9 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
           cache: true
+
+      - name: Install gotestsum
+        run: go install gotest.tools/gotestsum@latest
 
       - name: Install System Dependencies
         run: |
@@ -255,17 +261,16 @@ jobs:
       - name: Create test results directory
         run: mkdir -p test-results
 
-      # Run tests in groups based on API categories with JSON output
+      # Run tests in groups based on API categories with JUnit output
       - name: Run User Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/user-management-tests.xml -- -tags=acceptance \
             ./internal/resources/user/tests/... \
-            ./internal/datasources/users_list/tests/... \
-            -json > test-results/user-management-tests.json
+            ./internal/datasources/users_list/tests/...
 
       - name: Run Session Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/session-management-tests.xml -- -tags=acceptance \
             ./internal/resources/kasm/session/tests/... \
             ./internal/resources/join/tests/... \
             ./internal/resources/session_permission/tests/... \
@@ -273,44 +278,43 @@ jobs:
             ./internal/resources/stats/tests/... \
             ./internal/datasources/sessions/tests/... \
             ./internal/datasources/session_status/tests/... \
-            ./internal/datasources/rdp/tests/... \
-            -json > test-results/session-management-tests.json
+            ./internal/datasources/rdp/tests/...
 
       - name: Run Image Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/image-management-tests.xml -- -tags=acceptance \
             ./internal/resources/image/tests/... \
-            ./internal/datasources/images/tests/... \
-            -json > test-results/image-management-tests.json
+            ./internal/datasources/images/tests/...
 
       - name: Run Registry Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/registry-management-tests.xml -- -tags=acceptance \
             ./internal/resources/registry/tests/... \
             ./internal/datasources/registries/tests/... \
-            ./internal/datasources/registry_images/tests/... \
-            -json > test-results/registry-management-tests.json
+            ./internal/datasources/registry_images/tests/...
 
       - name: Run Cast Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
-            ./internal/resources/cast/tests/... \
-            -json > test-results/cast-management-tests.json
+          TF_ACC=1 gotestsum --junitfile test-results/cast-management-tests.xml -- -tags=acceptance \
+            ./internal/resources/cast/tests/...
 
       - name: Run Group Management Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/group-management-tests.xml -- -tags=acceptance \
             ./internal/resources/group/tests/... \
             ./internal/resources/group_membership/tests/... \
             ./internal/resources/group_image/tests/... \
-            ./internal/datasources/group_images/tests/... \
-            -json > test-results/group-management-tests.json
+            ./internal/datasources/group_images/tests/...
 
       - name: Run Remaining Tests
         run: |
-          TF_ACC=1 go test -v -tags=acceptance \
-            $(go list ./... | grep -v 'user/tests\|users_list/tests\|session/tests\|join/tests\|session_permission/tests\|keepalive/tests\|stats/tests\|sessions/tests\|session_status/tests\|rdp/tests\|image/tests\|images/tests\|registry/tests\|registries/tests\|registry_images/tests\|cast/tests\|group/tests\|group_membership/tests\|group_image/tests\|group_images/tests') \
-            -json > test-results/remaining-tests.json
+          REMAINING_TESTS=$(go list ./... | grep -v 'user/tests\|users_list/tests\|session/tests\|join/tests\|session_permission/tests\|keepalive/tests\|stats/tests\|sessions/tests\|session_status/tests\|rdp/tests\|image/tests\|images/tests\|registry/tests\|registries/tests\|registry_images/tests\|cast/tests\|group/tests\|group_membership/tests\|group_image/tests\|group_images/tests')
+          if [ ! -z "$REMAINING_TESTS" ]; then
+            TF_ACC=1 gotestsum --junitfile test-results/remaining-tests.xml -- -tags=acceptance $REMAINING_TESTS
+          else
+            echo "No remaining tests to run"
+            echo '<?xml version="1.0" encoding="UTF-8"?><testsuites></testsuites>' > test-results/remaining-tests.xml
+          fi
 
       # Generate test reports for each category
       - name: Generate User Management Test Report
@@ -318,8 +322,8 @@ jobs:
         if: success() || failure()
         with:
           name: User Management Tests
-          path: test-results/user-management-tests.json
-          reporter: go-json
+          path: test-results/user-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Session Management Test Report
@@ -327,8 +331,8 @@ jobs:
         if: success() || failure()
         with:
           name: Session Management Tests
-          path: test-results/session-management-tests.json
-          reporter: go-json
+          path: test-results/session-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Image Management Test Report
@@ -336,8 +340,8 @@ jobs:
         if: success() || failure()
         with:
           name: Image Management Tests
-          path: test-results/image-management-tests.json
-          reporter: go-json
+          path: test-results/image-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Registry Management Test Report
@@ -345,8 +349,8 @@ jobs:
         if: success() || failure()
         with:
           name: Registry Management Tests
-          path: test-results/registry-management-tests.json
-          reporter: go-json
+          path: test-results/registry-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Cast Management Test Report
@@ -354,8 +358,8 @@ jobs:
         if: success() || failure()
         with:
           name: Cast Management Tests
-          path: test-results/cast-management-tests.json
-          reporter: go-json
+          path: test-results/cast-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Group Management Test Report
@@ -363,8 +367,8 @@ jobs:
         if: success() || failure()
         with:
           name: Group Management Tests
-          path: test-results/group-management-tests.json
-          reporter: go-json
+          path: test-results/group-management-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Generate Remaining Tests Report
@@ -372,8 +376,8 @@ jobs:
         if: success() || failure()
         with:
           name: Remaining Tests
-          path: test-results/remaining-tests.json
-          reporter: go-json
+          path: test-results/remaining-tests.xml
+          reporter: java-junit
           fail-on-error: false
 
       - name: Upload Test Logs
@@ -383,7 +387,7 @@ jobs:
           name: acceptance-test-logs
           path: |
             terraform.log
-            test-results/*.json
+            test-results/*.xml
 
       - name: Cleanup Kasm
         if: always()
