@@ -48,3 +48,14 @@ func (e *UnauthorizedError) Error() string {
 	}
 	return "Unauthorized"
 }
+
+// IsResourceUnavailableError checks if the error is due to resources being unavailable
+func IsResourceUnavailableError(err error) bool {
+	if err == nil {
+		return false
+	}
+	if apiErr, ok := err.(*APIError); ok {
+		return apiErr.ErrorMessage == "No resources are available to create the requested Kasm. Please try again later or contact an Administrator"
+	}
+	return false
+}
