@@ -250,5 +250,5 @@ These APIs are not officially documented in the Kasm API documentation but are u
 |----------|-------------|-------|-----------|-------|
 | get_kasms | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/sessions/tests | Implemented as kasm_sessions data source |
 | get_kasm_status | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/session_status/tests | Implemented as kasm_session_status data source |
-| get_rdp_client_connection_info | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/rdp/tests | Implemented as kasm_rdp_client_connection_info data source |
+| get_rdp_client_connection_info | ✅ | ✅ Unit, ❌ Acceptance | internal/datasources/rdp/tests | Implemented as kasm_rdp_client_connection_info data source. Note: Acceptance tests are skipped as the API endpoint is not working as expected. |
 | keepalive | ✅ | ✅ Unit, ✅ Acceptance | internal/resources/keepalive/tests | Implemented as kasm_keepalive resource |

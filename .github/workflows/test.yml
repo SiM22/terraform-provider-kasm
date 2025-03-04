@@ -295,13 +295,13 @@ jobs:
       # Run tests in groups based on API categories with JUnit output
       - name: Run User Management Tests
         run: |
-          TF_ACC=1 gotestsum --junitfile test-results/user-management-tests.xml -- -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/user-management-tests.xml --format standard-verbose -- -tags=acceptance \
             ./internal/resources/user/tests/... \
             ./internal/datasources/users_list/tests/...
 
       - name: Run Session Management Tests
         run: |
-          TF_ACC=1 gotestsum --junitfile test-results/session-management-tests.xml -- -tags=acceptance \
+          TF_ACC=1 gotestsum --junitfile test-results/session-management-tests.xml --format standard-verbose -- -tags=acceptance \
             ./internal/resources/kasm/session/tests/... \
             ./internal/resources/join/tests/... \
             ./internal/resources/session_permission/tests/... \
@@ -310,6 +310,12 @@ jobs:
             ./internal/datasources/sessions/tests/... \
             ./internal/datasources/session_status/tests/... \
             ./internal/datasources/rdp/tests/...
+
+      - name: Ensure cleanup of any test images
+        if: always()
+        run: |
+          echo "Cleaning up any test resources..."
+          TF_ACC=1 go test -tags=acceptance ./testutils -run TestCleanupResources
 
       - name: Run Image Management Tests
         run: |
