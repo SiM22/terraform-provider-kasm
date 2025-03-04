@@ -21,6 +21,10 @@ on:
       USER_PASSWORD:
         required: true
 
+permissions:
+  contents: read
+  checks: write  # Required for test-reporter to create check runs
+
 env:
   KASM_BASE_URL: "https://localhost"
   ADMIN_USERNAME: "admin@kasm.local"
