@@ -44,16 +44,25 @@ func TestAccKasmKeepalive_basic(t *testing.T) {
 		t.Fatal("No images found in the system")
 	}
 
-	// Find an available image
+	// Find the FileZilla image which is known to work
 	var imageID string
 	for _, img := range images {
-		if img.Available {
+		if img.Available && (img.FriendlyName == "FileZilla" || img.Name == "kasmweb/filezilla:1.16.1") {
 			imageID = img.ImageID
 			break
 		}
 	}
 	if imageID == "" {
-		t.Fatal("No available images found")
+		// Fallback to any available image
+		for _, img := range images {
+			if img.Available {
+				imageID = img.ImageID
+				break
+			}
+		}
+		if imageID == "" {
+			t.Fatal("No available images found")
+		}
 	}
 	log.Printf("[DEBUG] Using image ID: %s", imageID)
 

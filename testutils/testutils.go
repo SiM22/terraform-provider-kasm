@@ -209,14 +209,15 @@ func EnsureImageAvailable(t testing.TB) (string, bool) {
 
 // createTestImage creates a test image for testing
 func createTestImage(t testing.TB, c *client.Client) (string, bool) {
-	// Create a small, lightweight image for testing
+	// Create a small, lightweight image for testing with a format that matches the registry workspaces
 	runConfig := map[string]interface{}{
-		"hostname":       "kasm-test",
-		"container_name": "kasm_test_container",
-		"network":        "kasm-network",
+		"user":       1000,
+		"entrypoint": []string{"/kasminit"},
 		"environment": map[string]string{
+			"HOME":      "/home/kasm-user",
 			"KASM_TEST": "true",
 		},
+		"security_opt": []string{"seccomp=unconfined"},
 	}
 	runConfigJSON, _ := json.Marshal(runConfig)
 

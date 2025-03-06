@@ -11,31 +11,77 @@ import (
 )
 
 func (c *Client) GetKasmStatus(userID, kasmID string, skipAgentCheck bool) (*KasmStatusResponse, error) {
-	body, err := json.Marshal(map[string]interface{}{
+	// Create request body
+	requestBody := map[string]interface{}{
 		"api_key":          c.APIKey,
 		"api_key_secret":   c.APISecret,
 		"user_id":          userID,
 		"kasm_id":          kasmID,
 		"skip_agent_check": skipAgentCheck,
-	})
+	}
+
+	// Marshal the request body
+	body, err := json.Marshal(requestBody)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling request body: %v", err)
 	}
 
-	resp, err := c.HTTPClient.Post(c.BaseURL+"/api/public/get_kasm_status", "application/json", bytes.NewBuffer(body))
+	// Log request details
+	log.Printf("[DEBUG] GetKasmStatus request URL: %s", c.BaseURL+"/api/public/get_kasm_status")
+	log.Printf("[DEBUG] GetKasmStatus request body: %s", string(body))
+	log.Printf("[DEBUG] GetKasmStatus request for kasm_id: %s, user_id: %s", kasmID, userID)
+
+	// Create a new request
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/public/get_kasm_status", bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %v", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	log.Printf("[DEBUG] GetKasmStatus request headers: %v", req.Header)
+
+	// Make the request
+	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error making request: %v", err)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, string(bodyBytes))
+	// Read response body for debugging
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyString := string(bodyBytes)
+
+	// Log response details
+	log.Printf("[DEBUG] GetKasmStatus response status: %d", resp.StatusCode)
+	log.Printf("[DEBUG] GetKasmStatus response headers: %v", resp.Header)
+	log.Printf("[DEBUG] GetKasmStatus response body: %s", bodyString)
+
+	// Handle different status codes
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		return nil, fmt.Errorf("authentication error: %d, body: %s", resp.StatusCode, bodyString)
+	} else if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, bodyString)
 	}
 
+	// Decode the response
 	var result KasmStatusResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
+	if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&result); err != nil {
+		return nil, fmt.Errorf("error decoding response: %v, body: %s", err, bodyString)
+	}
+
+	// Check for API error messages
+	if result.ErrorMessage != "" {
+		log.Printf("[WARN] API returned error message: %s", result.ErrorMessage)
+	}
+
+	// Log successful response details
+	if result.Kasm != nil {
+		log.Printf("[DEBUG] Successfully retrieved status for kasm_id: %s, container_id: %s",
+			kasmID, result.Kasm.ContainerID)
+	} else {
+		log.Printf("[DEBUG] Retrieved status for kasm_id: %s, but Kasm details are nil", kasmID)
 	}
 
 	return &result, nil

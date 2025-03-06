@@ -78,8 +78,19 @@ func TestAccSessionStatusDataSource(t *testing.T) {
 		t.Fatalf("Failed to create test session: %v", err)
 	}
 	kasmID := sessionResp.KasmID
+
+	// Log detailed session creation response
+	t.Logf("[DEBUG] Session created successfully:")
+	t.Logf("[DEBUG] - Kasm ID: %s", kasmID)
+	t.Logf("[DEBUG] - User ID: %s", userID)
+	t.Logf("[DEBUG] - Username: %s", username)
+	t.Logf("[DEBUG] - Image ID: %s", imageID)
+	t.Logf("[DEBUG] - Session Token: %s", sessionResp.SessionToken)
+	t.Logf("[DEBUG] - Kasm URL: %s", sessionResp.KasmURL)
+
 	defer func() {
 		// Clean up the session
+		t.Logf("[DEBUG] Cleaning up session: %s", kasmID)
 		err := c.DestroyKasm(userID, kasmID)
 		if err != nil {
 			t.Logf("Warning: Failed to destroy test session: %v", err)
@@ -87,28 +98,48 @@ func TestAccSessionStatusDataSource(t *testing.T) {
 	}()
 
 	// Wait for the session to be fully initialized
-	log.Printf("[DEBUG] Waiting for session to initialize...")
-	maxRetries := 5
-	for i := 0; i < maxRetries; i++ {
-		time.Sleep(10 * time.Second)
+	log.Printf("[DEBUG] Waiting for session to initialize... (kasm_id: %s, user_id: %s)", kasmID, userID)
+	maxRetries := 15 // Increased from 10 to 15
+	var sessionReady bool
 
+	// Add an initial longer wait to give the session more time to initialize
+	log.Printf("[DEBUG] Initial wait of 60 seconds for session to initialize...")
+	time.Sleep(60 * time.Second)
+
+	for i := 0; i < maxRetries; i++ {
 		// Check if the session is available
+		log.Printf("[DEBUG] Checking session status (attempt %d/%d)...", i+1, maxRetries)
 		status, err := c.GetKasmStatus(userID, kasmID, true)
 		if err != nil {
 			t.Logf("Attempt %d: Session not ready yet: %v. Retrying...", i+1, err)
+			// Exponential backoff: 10s, 15s, 20s, 25s, etc.
+			waitTime := 10 + (i * 5)
+			t.Logf("[DEBUG] Waiting %d seconds before next retry...", waitTime)
+			time.Sleep(time.Duration(waitTime) * time.Second)
 			continue
 		}
 
 		if status.Kasm != nil && status.Kasm.ContainerID != "" {
 			t.Logf("Session is ready after %d attempts", i+1)
+			t.Logf("[DEBUG] Session details:")
+			t.Logf("[DEBUG] - Container ID: %s", status.Kasm.ContainerID)
+			t.Logf("[DEBUG] - Container IP: %s", status.Kasm.ContainerIP)
+			t.Logf("[DEBUG] - Host: %s", status.Kasm.Host)
+			t.Logf("[DEBUG] - Port: %d", status.Kasm.Port)
+			sessionReady = true
 			break
 		}
 
-		t.Logf("Attempt %d: Session not fully initialized yet. Retrying...", i+1)
+		t.Logf("Attempt %d: Session not fully initialized yet (container_id empty). Retrying...", i+1)
+		// Exponential backoff: 10s, 15s, 20s, 25s, etc.
+		waitTime := 10 + (i * 5)
+		t.Logf("[DEBUG] Waiting %d seconds before next retry...", waitTime)
+		time.Sleep(time.Duration(waitTime) * time.Second)
+	}
 
-		if i == maxRetries-1 {
-			t.Logf("Warning: Session may not be fully initialized after %d attempts", maxRetries)
-		}
+	if !sessionReady {
+		t.Logf("[WARN] Session may not be fully initialized after %d attempts. Proceeding with test anyway.", maxRetries)
+		t.Logf("[DEBUG] Session details - kasm_id: %s, user_id: %s", kasmID, userID)
 	}
 
 	resource.Test(t, resource.TestCase{
