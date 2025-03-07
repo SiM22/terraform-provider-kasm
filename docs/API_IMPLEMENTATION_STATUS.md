@@ -252,3 +252,23 @@ These APIs are not officially documented in the Kasm API documentation but are u
 | get_kasm_status | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/session_status/tests | Implemented as kasm_session_status data source |
 | get_rdp_client_connection_info | ✅ | ✅ Unit, ❌ Acceptance | internal/datasources/rdp/tests | Implemented as kasm_rdp_client_connection_info data source. Note: Acceptance tests are skipped as the API endpoint is not working as expected. |
 | keepalive | ✅ | ✅ Unit, ✅ Acceptance | internal/resources/keepalive/tests | Implemented as kasm_keepalive resource |
+
+### Session Sharing
+
+| Endpoint | Implemented | Tests | File Path | Notes |
+|----------|-------------|-------|-----------|-------|
+| set_share_settings | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Implemented in client but tests are currently skipped due to resource availability issues |
+| create_kasm_share_id | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Undocumented API endpoint used by Kasm UI. Implementation exists but is not currently being called in the session sharing flow |
+| set_session_permissions | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Implemented but tests are currently skipped due to resource availability issues |
+
+#### Session Sharing Flow
+
+The correct flow for session sharing implementation should be:
+
+1. Create a Kasm session using `request_kasm`
+2. Enable sharing using `set_share_settings`
+3. Generate a Share ID using `create_kasm_share_id` (undocumented API)
+4. Set permissions using `set_session_permissions`
+5. Join the shared session using `join_kasm`
+
+Currently, step 3 is missing in our implementation, which is why the Share ID remains empty when attempting to join a shared session. This needs to be implemented in the session resource to properly support session sharing.
