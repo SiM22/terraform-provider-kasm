@@ -104,7 +104,7 @@ func TestAccSessionStatusDataSource(t *testing.T) {
 
 	// Add an initial longer wait to give the session more time to initialize
 	log.Printf("[DEBUG] Initial wait of 60 seconds for session to initialize...")
-	time.Sleep(60 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	for i := 0; i < maxRetries; i++ {
 		// Check if the session is available

@@ -220,6 +220,121 @@ func (c *Client) DestroyKasm(userID, kasmID string) error {
 	return nil
 }
 
+// CreateKasmShareID creates a share ID for an existing Kasm session
+// This uses an undocumented API endpoint that is used by the Kasm UI
+func (c *Client) CreateKasmShareID(kasmID string, sessionToken string, username string) (string, error) {
+	log.Printf("[DEBUG] Creating share ID for Kasm session %s", kasmID)
+
+	// Create request body
+	requestBody := map[string]interface{}{
+		"kasm_id":  kasmID,
+		"token":    sessionToken,
+		"username": username,
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return "", fmt.Errorf("error marshaling request body: %v", err)
+	}
+
+	log.Printf("[DEBUG] CreateKasmShareID request URL: %s", c.BaseURL+"/api/create_kasm_share_id")
+	log.Printf("[DEBUG] CreateKasmShareID request body: %s", string(body))
+
+	// Create a new request
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/create_kasm_share_id", bytes.NewBuffer(body))
+	if err != nil {
+		return "", fmt.Errorf("error creating request: %v", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// Send the request
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error making request: %v", err)
+	}
+
+	// Read response body
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyString := string(bodyBytes)
+	resp.Body.Close()
+
+	log.Printf("[DEBUG] CreateKasmShareID response status: %d", resp.StatusCode)
+	log.Printf("[DEBUG] CreateKasmShareID response body: %s", bodyString)
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, bodyString)
+	}
+
+	// Parse the response
+	var result struct {
+		ShareID string `json:"share_id"`
+	}
+	if err := json.NewDecoder(bytes.NewReader(bodyBytes)).Decode(&result); err != nil {
+		return "", fmt.Errorf("error decoding response: %v, body: %s", err, bodyString)
+	}
+
+	if result.ShareID == "" {
+		return "", fmt.Errorf("API returned empty share ID")
+	}
+
+	return result.ShareID, nil
+}
+
+// SetShareSettings enables or disables sharing for an existing Kasm session
+func (c *Client) SetShareSettings(kasmID string, share bool, enableSharing bool) error {
+	log.Printf("[DEBUG] Setting share settings for Kasm session %s: share=%v, enable_sharing=%v", kasmID, share, enableSharing)
+
+	// Create request body
+	requestBody := map[string]interface{}{
+		"api_key":        c.APIKey,
+		"api_key_secret": c.APISecret,
+		"kasm_id":        kasmID,
+		"share":          share,
+		"enable_sharing": enableSharing,
+	}
+
+	body, err := json.Marshal(requestBody)
+	if err != nil {
+		return fmt.Errorf("error marshaling request body: %v", err)
+	}
+
+	log.Printf("[DEBUG] SetShareSettings request URL: %s", c.BaseURL+"/api/public/set_share_settings")
+	log.Printf("[DEBUG] SetShareSettings request body: %s", string(body))
+
+	// Create a new request
+	req, err := http.NewRequest("POST", c.BaseURL+"/api/public/set_share_settings", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("error creating request: %v", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// Send the request
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making request: %v", err)
+	}
+
+	// Read response body
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	bodyString := string(bodyBytes)
+	resp.Body.Close()
+
+	log.Printf("[DEBUG] SetShareSettings response status: %d", resp.StatusCode)
+	log.Printf("[DEBUG] SetShareSettings response body: %s", bodyString)
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("API request failed with status code: %d, body: %s", resp.StatusCode, bodyString)
+	}
+
+	return nil
+}
+
 func (c *Client) CreateKasm(userID string, imageID string, sessionToken string, username string, share bool, persistent bool, allowResume bool, sessionAuthentication bool) (*CreateKasmResponse, error) {
 	log.Printf("[DEBUG] Creating Kasm session for user %s with image %s", userID, imageID)
 
@@ -268,20 +383,22 @@ func (c *Client) CreateKasm(userID string, imageID string, sessionToken string, 
 	}
 
 	// Create request body according to API documentation
+	// Always create session without sharing initially to avoid "Failed to create Share ID" error
+	// Sharing will be enabled later through a separate API call if requested
 	requestBody := map[string]interface{}{
 		"api_key":                c.APIKey,
 		"api_key_secret":         c.APISecret,
 		"user_id":                userID,
 		"image_id":               imageID,
-		"share":                  share,
-		"enable_sharing":         share,
+		"share":                  false,
+		"enable_sharing":         false,
 		"environment":            map[string]string{},
 		"session_token":          token,
 		"persistent":             persistent,
 		"allow_resume":           allowResume,
 		"session_authentication": sessionAuthentication,
 		"client_settings": map[string]interface{}{
-			"allow_kasm_sharing": share,
+			"allow_kasm_sharing": true, // Allow sharing in client settings even if not enabled initially
 		},
 	}
 
@@ -345,6 +462,27 @@ func (c *Client) CreateKasm(userID string, imageID string, sessionToken string, 
 
 		if result.ErrorMessage != "" {
 			return nil, fmt.Errorf("API returned error: %s", result.ErrorMessage)
+		}
+
+		// If sharing was requested, enable it now that the session is created
+		if share {
+			log.Printf("[DEBUG] Enabling sharing for Kasm session %s", result.KasmID)
+			err := c.SetShareSettings(result.KasmID, true, true)
+			if err != nil {
+				log.Printf("[WARN] Failed to enable sharing for Kasm session %s: %v", result.KasmID, err)
+				// Don't fail the whole operation if enabling sharing fails
+			} else {
+				// Try to create a share ID using the undocumented API
+				shareID, err := c.CreateKasmShareID(result.KasmID, token, username)
+				if err != nil {
+					log.Printf("[WARN] Failed to create share ID for Kasm session %s: %v", result.KasmID, err)
+					// Don't fail the whole operation if creating share ID fails
+				} else {
+					// Update the result with the share ID
+					result.ShareID = shareID
+					log.Printf("[DEBUG] Successfully created share ID %s for Kasm session %s", shareID, result.KasmID)
+				}
+			}
 		}
 
 		return &result, nil
