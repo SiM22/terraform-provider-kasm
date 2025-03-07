@@ -36,8 +36,8 @@ These APIs are officially documented in the Kasm API documentation.
 | POST /api/public/get_kasm_frame_stats | Implemented | kasm_stats | internal/client/kasm_ops.go | ✅ | internal/resources/stats/tests/stats_test.go | Requires an active browser connection to the session. **Manual Testing Instructions:** Set `KASM_SKIP_BROWSER_TEST=false` and follow the prompts to open the session URL in a browser. **CI/CD Notes:** Set `KASM_SKIP_BROWSER_TEST=true` to skip in CI environments. Future work needed to automate browser interaction for CI. |
 | POST /api/public/screenshot | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/exec_command | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
-| POST /api/public/get_kasms | Implemented | kasm_sessions | internal/datasources/sessions | ✅ | internal/resources/kasm/session/tests/session_test.go |
-| POST /api/public/get_kasm_status | Implemented | kasm_session_status | internal/datasources/session_status | ✅ | internal/resources/kasm/session/tests/session_test.go |
+| POST /api/public/get_kasms | Implemented | kasm_sessions | internal/datasources/sessions | ✅ | internal/datasources/sessions/tests/datasource_acceptance_test.go |
+| POST /api/public/get_kasm_status | Implemented | kasm_session_status | internal/datasources/session_status | ✅ | internal/datasources/session_status/tests/datasource_acceptance_test.go |
 | GET /api/public/get_session_recordings | Not Implemented | - | - | ❌ | - |
 | GET /api/public/get_sessions_recordings | Not Implemented | - | - | ❌ | - |
 | POST /api/public/create_session | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
@@ -144,6 +144,12 @@ These APIs are officially documented in the Kasm API documentation.
 | GET /api/public/get_user | Implemented | kasm_users | internal/datasources/users | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | GET /api/public/get_users | Implemented | kasm_users | internal/datasources/users_list | ✅ | internal/datasources/users_list/tests/users_test.go |
 
+#### Sessions
+| API Endpoint | Implementation Status | Data Source Name | File Location | Tests | Test File |
+|--------------|---------------------|------------------|---------------|-------|-----------|
+| GET /api/public/get_kasms | Implemented | kasm_sessions | internal/datasources/sessions | ✅ | internal/datasources/sessions/tests/datasource_acceptance_test.go |
+| GET /api/public/get_kasm_status | Implemented | kasm_session_status | internal/datasources/session_status | ✅ | internal/datasources/session_status/tests/datasource_acceptance_test.go |
+
 #### Zones
 | API Endpoint | Implementation Status | Data Source Name | File Location | Tests | Test File |
 |--------------|---------------------|------------------|---------------|-------|-----------|
@@ -173,6 +179,15 @@ These APIs are officially documented in the Kasm API documentation.
 |--------------|---------------------|------------------|---------------|-------|-----------|
 | POST /api/public/get_rdp_client_connection_info | Implemented | kasm_rdp_client_connection_info | internal/datasources/rdp | ✅ | internal/datasources/rdp/tests/datasource_test.go |
 
+## Test Improvements
+
+- Added session initialization checks with retry mechanisms in tests to ensure sessions are fully initialized before proceeding with tests
+- Added resource constraint detection to skip tests when resources are unavailable
+- Improved error handling and logging for better diagnostics
+- Modified the ensureImageAvailable function to use any available image instead of specifically requiring Chrome
+- Fixed the keepalive resource by registering it in the provider
+- Added the IsResourceUnavailableError helper function to detect when resources are not available
+
 ## Undocumented APIs
 
 These APIs are not officially documented in the Kasm API documentation but are used by the Kasm web UI.
@@ -201,8 +216,6 @@ These APIs are not officially documented in the Kasm API documentation but are u
 
 ### Missing Data Sources (Documented APIs)
 1. Sessions:
-   - Need to create data source for `get_kasms` (client implementation exists)
-   - Need to create data source for `get_kasm_status` (client implementation exists)
    - Need to create data source for `get_session_recordings` (client implementation exists)
    - Need to create data source for `get_sessions_recordings` (client implementation exists)
 
@@ -230,3 +243,32 @@ These APIs are not officially documented in the Kasm API documentation but are u
 | Endpoint | Implemented in Code? | Tests Available? | Test File Location | Notes |
 |----------|----------------------|------------------|--------------------|-------|
 | User Import | Yes | Yes | [internal/resources/user/tests/user_import_test.go](cci:7://file:///Users/simon.garcia@contino.io/SynologyDrive/Code/HomeLab/GitHub/terraform-provider-kasm/internal/resources/user/tests/user_import_test.go:0:0-0:0) | Tests basic user import functionality with attribute verification |
+
+### Session Management
+
+| Endpoint | Implemented | Tests | File Path | Notes |
+|----------|-------------|-------|-----------|-------|
+| get_kasms | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/sessions/tests | Implemented as kasm_sessions data source |
+| get_kasm_status | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/session_status/tests | Implemented as kasm_session_status data source |
+| get_rdp_client_connection_info | ✅ | ✅ Unit, ❌ Acceptance | internal/datasources/rdp/tests | Implemented as kasm_rdp_client_connection_info data source. Note: Acceptance tests are skipped as the API endpoint is not working as expected. |
+| keepalive | ✅ | ✅ Unit, ✅ Acceptance | internal/resources/keepalive/tests | Implemented as kasm_keepalive resource |
+
+### Session Sharing
+
+| Endpoint | Implemented | Tests | File Path | Notes |
+|----------|-------------|-------|-----------|-------|
+| set_share_settings | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Implemented in client but tests are currently skipped due to resource availability issues |
+| create_kasm_share_id | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Undocumented API endpoint used by Kasm UI. Implementation exists but is not currently being called in the session sharing flow |
+| set_session_permissions | ✅ | ❌ Acceptance | internal/resources/session_permission/tests | Implemented but tests are currently skipped due to resource availability issues |
+
+#### Session Sharing Flow
+
+The correct flow for session sharing implementation should be:
+
+1. Create a Kasm session using `request_kasm`
+2. Enable sharing using `set_share_settings`
+3. Generate a Share ID using `create_kasm_share_id` (undocumented API)
+4. Set permissions using `set_session_permissions`
+5. Join the shared session using `join_kasm`
+
+Currently, step 3 is missing in our implementation, which is why the Share ID remains empty when attempting to join a shared session. This needs to be implemented in the session resource to properly support session sharing.

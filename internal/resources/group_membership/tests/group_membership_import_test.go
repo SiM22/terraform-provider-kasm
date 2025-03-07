@@ -7,9 +7,10 @@ import (
 	"testing"
 	"time"
 
+	"terraform-provider-kasm/testutils"
+
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
-	"terraform-provider-kasm/testutils"
 )
 
 func TestAccGroupMembership_import(t *testing.T) {

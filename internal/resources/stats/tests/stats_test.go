@@ -231,6 +231,9 @@ func TestAccKasmStats_FrameStats(t *testing.T) {
 	sessionToken := uuid.New().String()
 	kasm, err := c.CreateKasm(userID, imageID, sessionToken, "test", true, false, false, false)
 	if err != nil {
+		if client.IsResourceUnavailableError(err) {
+			t.Skip("Skipping test as no resources are available to create a Kasm session. An active session is required for this test to work.")
+		}
 		t.Fatalf("Failed to create Kasm session: %v", err)
 	}
 
