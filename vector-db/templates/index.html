@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Structure Explorer</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12 header">
+                <h1>Code Structure Explorer</h1>
+                <p>Explore the structure of your codebase</p>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 sidebar">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Search</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="input-group mb-3">
+                            <input type="text" id="searchInput" class="form-control" placeholder="Search for functions, types...">
+                            <button class="btn btn-primary" id="searchButton">Search</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h5>Navigation</h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav flex-column" id="navigationMenu">
+                            <li class="nav-item">
+                                <a class="nav-link active" href="#" data-view="packages">Packages</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-view="functions">Functions</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-view="types">Types</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-view="codeFlow">Code Flow</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#" data-view="apiMethods">API Methods</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-9 main-content">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 id="contentTitle">Code Structure</h5>
+                        <span id="documentCount" class="badge bg-secondary">0 documents</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingIndicator" class="text-center">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div id="contentArea"></div>
+                    </div>
+                </div>
+
+                <div class="card mt-3" id="detailCard" style="display: none;">
+                    <div class="card-header">
+                        <h5 id="detailTitle">Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <pre id="detailContent" class="code-block"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  analyzer:
+    build: ./code-analyzer
+    # Remove the volume mount that overwrites the executable
+    # volumes:
+    #   - .:/app
+    depends_on:
+      - vector-db
+
+  vector-db:
+    build: ./vector-db
+    ports:
+      - "8000:8000"

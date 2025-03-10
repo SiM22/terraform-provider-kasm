@@ -238,6 +238,12 @@ These APIs are not officially documented in the Kasm API documentation but are u
 - [ ] Create data sources for session recordings functionality
 - [ ] Add acceptance tests for session recordings (currently skipped in tests)
 
+### Code Analysis System
+| Component | Implemented | Tests | File Path |
+|-----------|-------------|-------|-----------|
+| Go Parser | Yes | Partial | code-analyzer/main.go |
+| Vector DB | Yes | Yes | vector-db/main.py |
+
 ### User Import API
 
 | Endpoint | Implemented in Code? | Tests Available? | Test File Location | Notes |

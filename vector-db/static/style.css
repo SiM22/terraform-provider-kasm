@@ -1,0 +1,247 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+    padding: 20px;
+}
+
+.header {
+    background-color: #343a40;
+    color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 5px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 2.2rem;
+}
+
+.header p {
+    margin: 5px 0 0 0;
+    opacity: 0.8;
+}
+
+.sidebar {
+    margin-bottom: 20px;
+}
+
+.card {
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+    background-color: #f1f3f5;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.card-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.nav-link {
+    color: #495057;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+}
+
+.nav-link:hover {
+    background-color: #e9ecef;
+}
+
+.nav-link.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.code-block {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #dee2e6;
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.item-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    margin-bottom: 10px;
+}
+
+.item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.item-card .card-body {
+    padding: 10px 15px;
+}
+
+.item-card h6 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.item-card p {
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.badge {
+    font-weight: normal;
+    font-size: 0.8rem;
+}
+
+/* Code Flow Visualization Styles */
+#flow-container {
+    background-color: #ffffff;
+    overflow: hidden;
+    position: relative;
+}
+
+.node circle {
+    cursor: pointer;
+    transition: fill 0.3s, r 0.3s;
+}
+
+.node:hover circle {
+    fill: #3498db;
+    r: 12;
+}
+
+.node text {
+    fill: #333;
+    font-family: Arial, sans-serif;
+    pointer-events: none;
+    user-select: none;
+}
+
+.node:hover text {
+    font-weight: bold;
+}
+
+.link {
+    cursor: pointer;
+    transition: stroke 0.3s, stroke-width 0.3s;
+}
+
+.link:hover {
+    stroke: #3498db;
+    stroke-width: 3px;
+}
+
+/* API Methods Display Styles */
+.api-method-card {
+    transition: transform 0.2s;
+    margin-bottom: 20px;
+}
+
+.api-method-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.api-method-card .card-header {
+    padding: 10px 15px;
+}
+
+.api-method-card .card-header h5 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.api-endpoint {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 5px;
+}
+
+.http-method {
+    font-weight: bold;
+    padding: 2px 8px;
+    border-radius: 4px;
+    color: white;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.http-method.get {
+    background-color: #28a745;
+}
+
+.http-method.post {
+    background-color: #007bff;
+}
+
+.http-method.put {
+    background-color: #fd7e14;
+}
+
+.http-method.delete {
+    background-color: #dc3545;
+}
+
+.http-method.patch {
+    background-color: #6f42c1;
+}
+
+.request-response-container {
+    margin-top: 15px;
+}
+
+.request-response-card {
+    height: 100%;
+}
+
+.request-response-card .card-header {
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 8px 12px;
+}
+
+.request-response-card .card-body {
+    padding: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.85rem;
+}
+
+#loadingIndicator {
+    padding: 30px;
+}
+
+.function-name {
+    color: #007bff;
+    font-weight: bold;
+}
+
+.type-name {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.package-name {
+    color: #6610f2;
+    font-weight: bold;
+}
+
+.import-item {
+    color: #fd7e14;
+}
+
+.doc-text {
+    color: #6c757d;
+    font-style: italic;
+    margin-left: 20px;
+    white-space: pre-line;
+}
