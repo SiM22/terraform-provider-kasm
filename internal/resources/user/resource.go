@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"terraform-provider-kasm/internal/client"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,7 +16,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"terraform-provider-kasm/internal/client"
 )
 
 var _ resource.Resource = &userResource{}
@@ -419,6 +420,19 @@ func (r *userResource) Read(ctx context.Context, req resource.ReadRequest, resp 
 			fmt.Sprintf("Could not read user ID %s: %v", state.ID.ValueString(), err),
 		)
 		return
+	}
+
+	// Debug: Log user details from API
+	tflog.Debug(ctx, fmt.Sprintf("User from API: %+v", user))
+	if user.Groups != nil {
+		groupNames := []string{}
+		for _, group := range user.Groups {
+			groupNames = append(groupNames, group.Name)
+		}
+		tflog.Debug(ctx, fmt.Sprintf("User groups from API: %+v", groupNames))
+	}
+	if user.AuthorizedImages != nil {
+		tflog.Debug(ctx, fmt.Sprintf("User authorized images from API: %+v", user.AuthorizedImages))
 	}
 
 	// Update state with user data
