@@ -118,9 +118,24 @@ func CleanupExistingSessions(t testing.TB) {
 
 	// Destroy each session
 	for _, kasm := range kasms.Kasms {
+		// Try to destroy the session
 		err := c.DestroyKasm(kasm.UserID, kasm.KasmID)
 		if err != nil {
-			t.Logf("Warning: Failed to destroy session %s: %v", kasm.KasmID, err)
+			// If we get an error about invalid user_id, try to destroy with admin user
+			if containsIgnoreCase(err.Error(), "Invalid user_id") {
+				t.Logf("Session %s has invalid user_id %s, trying to destroy with admin user", kasm.KasmID, kasm.UserID)
+				// Use a default admin user ID for cleanup
+				// This is just for cleanup purposes and doesn't need to be a real user
+				adminUserID := "00000000-0000-0000-0000-000000000000"
+				err = c.DestroyKasm(adminUserID, kasm.KasmID)
+				if err != nil {
+					// If that also fails, log and continue
+					t.Logf("Warning: Failed to destroy session %s with admin user: %v", kasm.KasmID, err)
+				}
+			} else {
+				// For other errors, just log and continue
+				t.Logf("Warning: Failed to destroy session %s: %v", kasm.KasmID, err)
+			}
 		}
 	}
 }
@@ -303,8 +318,8 @@ func createTestImage(t testing.TB, c *client.Client) (string, bool) {
 
 // waitForImageAvailable waits for an image to be downloaded and available
 func waitForImageAvailable(t testing.TB, c *client.Client, imageID string) {
-	maxRetries := 30
-	retryDelay := 5 * time.Second
+	maxRetries := 6
+	retryDelay := 10 * time.Second
 
 	for i := 0; i < maxRetries; i++ {
 		images, err := c.GetImages()

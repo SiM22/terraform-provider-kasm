@@ -48,6 +48,8 @@ func TestAccKasmSession_Basic(t *testing.T) {
 			if _, available := testutils.EnsureImageAvailable(t); !available {
 				t.Skip("Images are no longer available")
 			}
+			// No longer skipping in CI since we've implemented retry logic with exponential backoff
+			// to handle resource constraints in the session resource implementation
 		},
 		ProtoV6ProviderFactories: testutils.TestAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{

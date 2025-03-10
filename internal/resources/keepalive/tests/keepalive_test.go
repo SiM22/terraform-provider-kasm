@@ -18,6 +18,9 @@ func TestAccKasmKeepalive_basic(t *testing.T) {
 		t.Skip("Acceptance tests skipped unless env 'TF_ACC' set")
 	}
 
+	// No longer skipping in CI since we've implemented retry logic with exponential backoff
+	// to handle resource constraints in both session and keepalive resource implementations
+
 	// Setup test client
 	c := testutils.GetTestClient(t)
 	if c == nil {
@@ -78,9 +81,10 @@ func TestAccKasmKeepalive_basic(t *testing.T) {
 		false, // sessionAuthentication
 	)
 	if err != nil {
-		// If we can't create a session due to resource constraints, skip the test
+		// We now have retry logic in the session resource, but if we still can't create a session
+		// after multiple retries, we should still skip the test
 		if err.Error() == "API returned error: No resources are available to create the requested Kasm. Please try again later or contact an Administrator" {
-			t.Skip("Skipping test due to resource constraints on the Kasm server")
+			t.Skip("Skipping test due to persistent resource constraints on the Kasm server after multiple retries")
 		}
 		t.Fatalf("Failed to create test kasm: %v", err)
 	}

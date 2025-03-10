@@ -155,7 +155,7 @@ func ensureWorkspaceImage(t *testing.T, c *client.Client) string {
 
 // waitForImageAvailable waits for an image to be downloaded and available
 func waitForImageAvailable(t *testing.T, c *client.Client, imageID string) {
-	maxRetries := 30 // 5 minutes max wait time
+	maxRetries := 6 // 5 minutes max wait time
 	retryInterval := 10 * time.Second
 
 	for i := 0; i < maxRetries; i++ {

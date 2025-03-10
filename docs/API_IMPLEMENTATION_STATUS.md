@@ -28,11 +28,11 @@ These APIs are officially documented in the Kasm API documentation.
 #### Session Management
 | API Endpoint | Implementation Status | Resource Name | File Location | Tests | Test File |
 |--------------|---------------------|---------------|---------------|-------|-----------|
-| POST /api/public/request_kasm | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
+| POST /api/public/request_kasm | Implemented | kasm_session | internal/resources/kasm | ✅ | internal/resources/kasm/session/tests/session_test.go | Includes retry logic with exponential backoff for handling resource constraints |
 | POST /api/public/destroy_kasm | Implemented | kasm_session | internal/resources/session | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/join_kasm | Implemented | kasm_join | internal/resources/join | ✅ | internal/resources/kasm/session/tests/session_test.go |
 | POST /api/public/set_session_permissions | Implemented | kasm_session_permission | internal/resources/session_permission | ✅ | internal/resources/session_permission/tests/session_permission_test.go |
-| POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | internal/resources/keepalive/tests/keepalive_test.go |
+| POST /api/public/keepalive | Implemented | kasm_keepalive | internal/resources/keepalive | ✅ | internal/resources/keepalive/tests/keepalive_test.go | Includes retry logic with exponential backoff for handling resource constraints |
 | POST /api/public/get_kasm_frame_stats | Implemented | kasm_stats | internal/client/kasm_ops.go | ✅ | internal/resources/stats/tests/stats_test.go | Requires an active browser connection to the session. **Manual Testing Instructions:** Set `KASM_SKIP_BROWSER_TEST=false` and follow the prompts to open the session URL in a browser. **CI/CD Notes:** Set `KASM_SKIP_BROWSER_TEST=true` to skip in CI environments. Future work needed to automate browser interaction for CI. |
 | POST /api/public/screenshot | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
 | POST /api/public/exec_command | Not Implemented (Client Implementation Exists) | - | - | ❌ | - |
@@ -251,7 +251,7 @@ These APIs are not officially documented in the Kasm API documentation but are u
 | get_kasms | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/sessions/tests | Implemented as kasm_sessions data source |
 | get_kasm_status | ✅ | ✅ Unit, ✅ Acceptance | internal/datasources/session_status/tests | Implemented as kasm_session_status data source |
 | get_rdp_client_connection_info | ✅ | ✅ Unit, ❌ Acceptance | internal/datasources/rdp/tests | Implemented as kasm_rdp_client_connection_info data source. Note: Acceptance tests are skipped as the API endpoint is not working as expected. |
-| keepalive | ✅ | ✅ Unit, ✅ Acceptance | internal/resources/keepalive/tests | Implemented as kasm_keepalive resource |
+| keepalive | ✅ | ✅ Unit, ✅ Acceptance | internal/resources/keepalive/tests | Implemented as kasm_keepalive resource with retry logic for resource constraints |
 
 ### Session Sharing
 

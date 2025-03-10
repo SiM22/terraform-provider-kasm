@@ -3,10 +3,13 @@ package keepalive
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"terraform-provider-kasm/internal/client"
 )
@@ -75,15 +78,61 @@ func (r *keepaliveResource) Create(ctx context.Context, req resource.CreateReque
 	// Set a unique ID before making the API call
 	plan.ID = types.StringValue(plan.KasmID.ValueString())
 
-	// Make the keepalive API call
-	_, err := r.client.Keepalive(plan.KasmID.ValueString())
+	tflog.Info(ctx, fmt.Sprintf("Sending keepalive for kasm_id: %s", plan.KasmID.ValueString()))
+
+	// Make the keepalive API call with retry logic
+	var err error
+	maxRetries := 5
+	baseDelay := 3 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		_, err = r.client.Keepalive(plan.KasmID.ValueString())
+		if err == nil {
+			// Success!
+			break
+		}
+
+		// Check if the error is due to resource constraints or session not being ready
+		errMsg := err.Error()
+		retryableErrors := []string{
+			"No resources are available",
+			"An Unexpected Error occurred",
+			"Please try again later",
+			"Please contact an Administrator",
+			"Session not found", // Session might not be fully created yet
+			"Invalid session",
+		}
+
+		isRetryable := false
+		for _, retryErr := range retryableErrors {
+			if strings.Contains(errMsg, retryErr) {
+				isRetryable = true
+				break
+			}
+		}
+
+		if !isRetryable || i == maxRetries-1 {
+			// If it's not a retryable error or we've exhausted retries, give up
+			break
+		}
+
+		// Calculate exponential backoff delay
+		delay := baseDelay * time.Duration(1<<uint(i))
+		tflog.Info(ctx, fmt.Sprintf("Retryable error detected, retrying keepalive in %v (attempt %d/%d): %v",
+			delay, i+1, maxRetries, err))
+		time.Sleep(delay)
+	}
+
+	// If we still have an error after retries, report it
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error sending keepalive",
-			fmt.Sprintf("Could not send keepalive: %v", err),
+			fmt.Sprintf("Could not send keepalive after %d attempts: %v", maxRetries, err),
 		)
 		return
 	}
+
+	tflog.Info(ctx, fmt.Sprintf("Successfully sent keepalive for kasm_id: %s", plan.KasmID.ValueString()))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -117,15 +166,61 @@ func (r *keepaliveResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	// Make the keepalive API call
-	_, err := r.client.Keepalive(plan.KasmID.ValueString())
+	tflog.Info(ctx, fmt.Sprintf("Updating keepalive for kasm_id: %s", plan.KasmID.ValueString()))
+
+	// Make the keepalive API call with retry logic
+	var err error
+	maxRetries := 5
+	baseDelay := 3 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		_, err = r.client.Keepalive(plan.KasmID.ValueString())
+		if err == nil {
+			// Success!
+			break
+		}
+
+		// Check if the error is due to resource constraints or session not being ready
+		errMsg := err.Error()
+		retryableErrors := []string{
+			"No resources are available",
+			"An Unexpected Error occurred",
+			"Please try again later",
+			"Please contact an Administrator",
+			"Session not found", // Session might not be fully created yet
+			"Invalid session",
+		}
+
+		isRetryable := false
+		for _, retryErr := range retryableErrors {
+			if strings.Contains(errMsg, retryErr) {
+				isRetryable = true
+				break
+			}
+		}
+
+		if !isRetryable || i == maxRetries-1 {
+			// If it's not a retryable error or we've exhausted retries, give up
+			break
+		}
+
+		// Calculate exponential backoff delay
+		delay := baseDelay * time.Duration(1<<uint(i))
+		tflog.Info(ctx, fmt.Sprintf("Retryable error detected, retrying keepalive in %v (attempt %d/%d): %v",
+			delay, i+1, maxRetries, err))
+		time.Sleep(delay)
+	}
+
+	// If we still have an error after retries, report it
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error sending keepalive",
-			fmt.Sprintf("Could not send keepalive: %v", err),
+			fmt.Sprintf("Could not send keepalive after %d attempts: %v", maxRetries, err),
 		)
 		return
 	}
+
+	tflog.Info(ctx, fmt.Sprintf("Successfully updated keepalive for kasm_id: %s", plan.KasmID.ValueString()))
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
