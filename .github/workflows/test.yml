@@ -433,6 +433,48 @@ jobs:
             terraform.log
             test-results/*.xml
 
+      - name: Collect Kasm Logs
+        if: always()
+        run: |
+          echo "Collecting Kasm logs..."
+          sudo mkdir -p /tmp/kasm_logs
+
+          # Check if log directory exists
+          if sudo test -d /opt/kasm/1.16.1/log/; then
+            # Copy all log files
+            sudo cp -r /opt/kasm/1.16.1/log/* /tmp/kasm_logs/
+
+            # Make sure the logs are readable
+            sudo chmod -R 755 /tmp/kasm_logs
+
+            # List the collected logs
+            echo "Collected Kasm logs:"
+            ls -la /tmp/kasm_logs/
+          else
+            echo "Kasm log directory not found at /opt/kasm/1.16.1/log/"
+            # Try to find where logs might be
+            sudo find /opt/kasm -name "*.log" -type f | sudo tee /tmp/kasm_logs/log_locations.txt
+          fi
+
+          # Check for any error messages in the logs
+          echo "Checking for errors in API server logs..."
+          if sudo test -f /tmp/kasm_logs/api_server.log; then
+            sudo grep -i "error\|exception\|fail" /tmp/kasm_logs/api_server.log | tail -n 100 | sudo tee /tmp/kasm_logs/api_errors.txt
+          fi
+
+          # Check for session-related errors specifically
+          echo "Checking for session-related errors..."
+          if sudo test -f /tmp/kasm_logs/api_server.log; then
+            sudo grep -i "session\|kasm\|keepalive" /tmp/kasm_logs/api_server.log | grep -i "error\|exception\|fail" | tail -n 100 | sudo tee /tmp/kasm_logs/session_errors.txt
+          fi
+
+      - name: Upload Kasm Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kasm-logs
+          path: /tmp/kasm_logs/
+
       - name: Cleanup Kasm
         if: always()
         run: |
