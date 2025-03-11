@@ -233,13 +233,19 @@ func createTestImage(t testing.TB, c *client.Client) (string, bool) {
 			"KASM_TEST": "true",
 		},
 		"security_opt": []string{"seccomp=unconfined"},
+		"shm_size":     "512m",                // Adding shared memory size which is common in Kasm images
+		"cap_add":      []string{"NET_ADMIN"}, // Add network admin capability which FileZilla might need
 	}
 	runConfigJSON, _ := json.Marshal(runConfig)
 
-	execConfig := map[string]interface{}{}
+	execConfig := map[string]interface{}{
+		"terminal": true, // Enable terminal access which is standard for Kasm images
+	}
 	execConfigJSON, _ := json.Marshal(execConfig)
 
-	volumeMappings := map[string]interface{}{}
+	volumeMappings := map[string]interface{}{
+		"uploads": "/home/kasm-user/uploads", // Add standard volume mapping for uploads
+	}
 	volumeMappingsJSON, _ := json.Marshal(volumeMappings)
 
 	// Using a small image for faster download
