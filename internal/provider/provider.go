@@ -19,6 +19,8 @@ import (
 	rdpds "terraform-provider-kasm/internal/datasources/rdp"
 	registryds "terraform-provider-kasm/internal/datasources/registries"
 	registryimageds "terraform-provider-kasm/internal/datasources/registry_images"
+	sessionstatusds "terraform-provider-kasm/internal/datasources/session_status"
+	sessionsds "terraform-provider-kasm/internal/datasources/sessions"
 	usersds "terraform-provider-kasm/internal/datasources/users_list"
 	zonesds "terraform-provider-kasm/internal/datasources/zones"
 	"terraform-provider-kasm/internal/resources/cast"
@@ -28,6 +30,7 @@ import (
 	imageres "terraform-provider-kasm/internal/resources/image"
 	"terraform-provider-kasm/internal/resources/join"
 	"terraform-provider-kasm/internal/resources/kasm"
+	"terraform-provider-kasm/internal/resources/keepalive"
 	"terraform-provider-kasm/internal/resources/license"
 	"terraform-provider-kasm/internal/resources/login"
 	"terraform-provider-kasm/internal/resources/registry"
@@ -233,6 +236,7 @@ func (p *kasmProvider) Resources(_ context.Context) []func() resource.Resource {
 		group_membership.New,
 		join.New,
 		stats.NewStatsResource,
+		keepalive.NewKeepaliveResource,
 	}
 }
 
@@ -245,5 +249,7 @@ func (p *kasmProvider) DataSources(_ context.Context) []func() datasource.DataSo
 		groupsds.New,
 		usersds.New,
 		rdpds.NewRDPClientConnectionInfoDataSource,
+		sessionsds.New,
+		sessionstatusds.New,
 	}
 }

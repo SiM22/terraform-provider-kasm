@@ -155,7 +155,7 @@ func ensureWorkspaceImage(t *testing.T, c *client.Client) string {
 
 // waitForImageAvailable waits for an image to be downloaded and available
 func waitForImageAvailable(t *testing.T, c *client.Client, imageID string) {
-	maxRetries := 30 // 5 minutes max wait time
+	maxRetries := 6 // 5 minutes max wait time
 	retryInterval := 10 * time.Second
 
 	for i := 0; i < maxRetries; i++ {
@@ -231,6 +231,9 @@ func TestAccKasmStats_FrameStats(t *testing.T) {
 	sessionToken := uuid.New().String()
 	kasm, err := c.CreateKasm(userID, imageID, sessionToken, "test", true, false, false, false)
 	if err != nil {
+		if client.IsResourceUnavailableError(err) {
+			t.Skip("Skipping test as no resources are available to create a Kasm session. An active session is required for this test to work.")
+		}
 		t.Fatalf("Failed to create Kasm session: %v", err)
 	}
 

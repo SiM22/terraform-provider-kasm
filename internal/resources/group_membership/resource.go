@@ -108,6 +108,29 @@ func (r *groupMembershipResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+	// Debug: Get user details after adding to group
+	user, err := r.client.GetUser(plan.UserID.ValueString())
+	if err != nil {
+		tflog.Warn(ctx, fmt.Sprintf("Could not get user details after adding to group: %v", err))
+	} else {
+		tflog.Debug(ctx, fmt.Sprintf("User details after adding to group: %+v", user))
+		if user.Groups != nil {
+			groupNames := []string{}
+			for _, group := range user.Groups {
+				groupNames = append(groupNames, group.Name)
+			}
+			tflog.Debug(ctx, fmt.Sprintf("User groups after adding to group: %+v", groupNames))
+		}
+		if user.AuthorizedImages != nil {
+			tflog.Debug(ctx, fmt.Sprintf("User authorized images after adding to group: %+v", user.AuthorizedImages))
+		}
+
+		// NOTE: The Kasm API automatically updates the user's authorized_images and groups
+		// when a user is added to a group. This can cause state drift in the user resource.
+		// In a real-world scenario, we would need to coordinate with the user resource
+		// to update its state. For testing purposes, we'll just log this information.
+	}
+
 	// Set a unique ID for the membership
 	plan.ID = types.StringValue(fmt.Sprintf("%s:%s", plan.GroupID.ValueString(), plan.UserID.ValueString()))
 

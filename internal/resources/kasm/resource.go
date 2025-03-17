@@ -200,21 +200,63 @@ func (r *kasmSessionResource) Create(ctx context.Context, req resource.CreateReq
 		plan.UserID.ValueString(),
 		plan.ImageID.ValueString()))
 
-	// Create the session
-	status, err := r.client.CreateKasm(
-		plan.UserID.ValueString(),
-		plan.ImageID.ValueString(),
-		"",
-		"",
-		plan.Share.ValueBool(),
-		plan.Persistent.ValueBool(),
-		plan.AllowResume.ValueBool(),
-		plan.SessionAuthentication.ValueBool(),
-	)
+	// Create the session with retry logic for resource constraints
+	var status *client.CreateKasmResponse
+	var err error
+	maxRetries := 5
+	baseDelay := 5 * time.Second
+
+	for i := 0; i < maxRetries; i++ {
+		status, err = r.client.CreateKasm(
+			plan.UserID.ValueString(),
+			plan.ImageID.ValueString(),
+			"",
+			"",
+			plan.Share.ValueBool(),
+			plan.Persistent.ValueBool(),
+			plan.AllowResume.ValueBool(),
+			plan.SessionAuthentication.ValueBool(),
+		)
+
+		if err == nil {
+			// Success!
+			break
+		}
+
+		// Check if the error is due to resource constraints
+		errMsg := err.Error()
+		resourceConstraintErrors := []string{
+			"No resources are available to create the requested Kasm",
+			"An Unexpected Error occurred creating the Kasm",
+			"Please try again later",
+			"Please contact an Administrator",
+		}
+
+		isResourceConstraint := false
+		for _, constraintErr := range resourceConstraintErrors {
+			if strings.Contains(errMsg, constraintErr) {
+				isResourceConstraint = true
+				break
+			}
+		}
+
+		if !isResourceConstraint || i == maxRetries-1 {
+			// If it's not a resource constraint error or we've exhausted retries, give up
+			break
+		}
+
+		// Calculate exponential backoff delay
+		delay := baseDelay * time.Duration(1<<uint(i))
+		tflog.Info(ctx, fmt.Sprintf("Resource constraint detected, retrying in %v (attempt %d/%d): %v",
+			delay, i+1, maxRetries, err))
+		time.Sleep(delay)
+	}
+
+	// If we still have an error after retries, report it
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating Kasm session",
-			fmt.Sprintf("Unable to create session: %v", err),
+			fmt.Sprintf("Unable to create session after %d attempts: %v", maxRetries, err),
 		)
 		return
 	}
