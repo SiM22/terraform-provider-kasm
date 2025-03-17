@@ -245,10 +245,13 @@ func createTestImage(t testing.TB, c *client.Client) (string, bool) {
 	execConfigJSON, _ := json.Marshal(execConfig)
 
 	volumeMappings := map[string]interface{}{
-		"uploads": map[string]string{
+		"uploads": map[string]interface{}{
 			"host_path":      "/home/kasm-user/uploads",
 			"container_path": "/home/kasm-user/uploads",
 			"mode":           "rw",
+			"bind":           true,
+			"uid":            1000,
+			"gid":            1000,
 		},
 	}
 	volumeMappingsJSON, err := json.Marshal(volumeMappings)
