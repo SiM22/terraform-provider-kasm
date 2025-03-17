@@ -10,12 +10,13 @@ import (
 	"testing"
 	"time"
 
+	"terraform-provider-kasm/internal/client"
+	"terraform-provider-kasm/internal/provider"
+
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/joho/godotenv"
-	"terraform-provider-kasm/internal/client"
-	"terraform-provider-kasm/internal/provider"
 )
 
 // LoadEnvFile loads environment variables from .env file
@@ -244,9 +245,19 @@ func createTestImage(t testing.TB, c *client.Client) (string, bool) {
 	execConfigJSON, _ := json.Marshal(execConfig)
 
 	volumeMappings := map[string]interface{}{
-		"uploads": "/home/kasm-user/uploads", // Add standard volume mapping for uploads
+		"volumes": []map[string]interface{}{
+			{
+				"host_path":      "/home/kasm-user/uploads",
+				"container_path": "/home/kasm-user/uploads",
+				"mode":           "rw",
+			},
+		},
 	}
-	volumeMappingsJSON, _ := json.Marshal(volumeMappings)
+	volumeMappingsJSON, err := json.Marshal(volumeMappings)
+	if err != nil {
+		t.Logf("Error marshaling volume mappings: %v", err)
+		return "", false
+	}
 
 	// Using a small image for faster download
 	image := &client.CreateImageRequest{
